@@ -8,9 +8,10 @@ import { ReservaCard } from './components/ReservaCard'
 import { ReservaForm } from './components/ReservaForm'
 import { ReservaDetalle } from './components/ReservaDetalle'
 import { GastosQuinta } from './components/GastosQuinta'
+import { SitioPublicoAdmin } from './components/SitioPublicoAdmin'
 import { cn } from '@/lib/cn'
 
-type Tab = 'calendario' | 'reservas' | 'gastos'
+type Tab = 'calendario' | 'reservas' | 'gastos' | 'sitio'
 
 export function CasaQuintaPage() {
   const { reservas, loading, addReserva, updateReserva, deleteReserva, addPago, deletePago } = useReservas()
@@ -45,6 +46,7 @@ export function CasaQuintaPage() {
     { key: 'calendario', label: 'Calendario' },
     { key: 'reservas', label: `Reservas (${reservas.length})` },
     { key: 'gastos', label: 'Gastos' },
+    { key: 'sitio', label: 'Sitio' },
   ]
 
   return (
@@ -159,6 +161,8 @@ export function CasaQuintaPage() {
           {tab === 'gastos' && (
             <GastosQuinta gastos={gastos} onAdd={addGasto} onDelete={deleteGasto} />
           )}
+
+          {tab === 'sitio' && <SitioPublicoAdmin />}
         </>
       )}
 

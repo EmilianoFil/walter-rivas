@@ -1,5 +1,22 @@
 import type { Timestamp } from 'firebase/firestore'
 
+// ─── Quinta Config (micrositio público) ──────────────────────────────────────
+export interface QuintaFoto {
+  url: string
+  path: string
+  orden: number
+}
+
+export interface QuintaConfig {
+  nombre: string
+  descripcion: string
+  amenities: string[]
+  fotos: QuintaFoto[]
+  contactoEmail: string
+  whatsapp?: string
+  ubicacion?: string
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface AppUser {
   uid: string

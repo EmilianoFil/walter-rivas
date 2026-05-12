@@ -18,6 +18,9 @@
       "target": "quinta",
       "public": "dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        { "source": "/", "destination": "/quinta", "type": 301 }
+      ],
       "rewrites": [
         {
           "source": "**",
