@@ -10,6 +10,7 @@ import { ObrasPage } from '@/routes/app/obras/ObrasPage'
 import { EmpresaPage } from '@/routes/app/empresa/EmpresaPage'
 import { FlotaPage } from '@/routes/app/flota/FlotaPage'
 import { AlertasPage } from '@/routes/app/alertas/AlertasPage'
+import { SettingsPage } from '@/routes/app/settings/SettingsPage'
 import { QuintaPublica } from '@/routes/quinta/QuintaPublica'
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="empresa" element={<EmpresaPage />} />
             <Route path="flota/*" element={<FlotaPage />} />
             <Route path="alertas" element={<AlertasPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

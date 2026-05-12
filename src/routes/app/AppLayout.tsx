@@ -8,6 +8,7 @@ import {
   Briefcase,
   Car,
   Bell,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { to: '/empresa', icon: Briefcase, label: 'Empresa' },
   { to: '/flota', icon: Car, label: 'Flota' },
   { to: '/alertas', icon: Bell, label: 'Alertas' },
+  { to: '/settings', icon: Settings, label: 'Configuración' },
 ]
 
 export function AppLayout() {
