@@ -45,9 +45,7 @@ export function AppLayout() {
       {/* Desktop sidebar — flex normal, no fixed */}
       <aside className="hidden lg:flex flex-col w-60 bg-slate-900 flex-shrink-0">
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
-          <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">R</span>
-          </div>
+          <img src="/logo.png" alt="WR" className="w-8 h-8 rounded-lg bg-white object-contain p-0.5 flex-shrink-0" />
           <span className="text-white font-semibold text-sm">Rivas</span>
         </div>
 
@@ -88,9 +86,7 @@ export function AppLayout() {
         {/* Mobile header — estático dentro del flex, no fixed */}
         <div className="lg:hidden bg-slate-900 flex items-center justify-between px-4 h-14 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-red-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">R</span>
-            </div>
+            <img src="/logo.png" alt="WR" className="w-7 h-7 rounded-lg bg-white object-contain p-0.5" />
             <span className="text-white font-semibold text-sm">Rivas</span>
           </div>
           <button
@@ -120,9 +116,7 @@ export function AppLayout() {
           <aside className="relative w-64 bg-slate-900 flex flex-col h-full">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-red-500 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">R</span>
-                </div>
+                <img src="/logo.png" alt="WR" className="w-7 h-7 rounded-lg bg-white object-contain p-0.5" />
                 <span className="text-white font-semibold text-sm">Rivas</span>
               </div>
               <button
