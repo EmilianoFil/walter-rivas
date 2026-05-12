@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "default": "walter-rivas"
+  },
+  "targets": {
+    "walter-rivas": {
+      "hosting": {
+        "app": ["walter-rivas"],
+        "quinta": ["quinta-rivas"]
+      }
+    }
+  }
+}
