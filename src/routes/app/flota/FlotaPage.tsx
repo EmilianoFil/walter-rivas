@@ -6,6 +6,7 @@ import { useFlota } from '@/hooks/useFlota'
 import { VehiculoCard } from './components/VehiculoCard'
 import { VehiculoForm } from './components/VehiculoForm'
 import { VehiculoDetalle } from './components/VehiculoDetalle'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 function diasHasta(t: Timestamp | Date): number {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
@@ -18,12 +19,13 @@ export function FlotaPage() {
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState<Vehiculo | null>(null)
   const [editing, setEditing] = useState<Vehiculo | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const handleDelete = async () => {
     if (!selected) return
-    if (!confirm(`¿Eliminar ${selected.marca} ${selected.modelo}?`)) return
     await deleteVehiculo(selected.id)
     setSelected(null)
+    setConfirmDelete(false)
   }
 
   // Alertas globales de flota (vencimientos en 30 días)
@@ -101,10 +103,17 @@ export function FlotaPage() {
           vehiculo={selected}
           onClose={() => setSelected(null)}
           onEdit={() => { setEditing(selected); setSelected(null) }}
-          onDelete={handleDelete}
+          onDelete={() => setConfirmDelete(true)}
           onUpdateKm={(km) => updateKm(selected, km)}
         />
       )}
+      <ConfirmSheet
+        open={confirmDelete}
+        title={selected ? `¿Eliminar ${selected.marca} ${selected.modelo}?` : ''}
+        confirmLabel="Eliminar vehículo"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Upload, Trash2, ExternalLink, Plus, X, GripVertical, Loader2, Ban } fro
 import { useQuintaConfig } from '@/hooks/useQuintaConfig'
 import type { QuintaFoto, RangoBloqueado } from '@/types'
 import { cn } from '@/lib/cn'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 const schema = z.object({
   nombre: z.string().min(1, 'Requerido'),
@@ -38,6 +39,7 @@ export function SitioPublicoAdmin() {
   const [bloqueoHasta, setBloqueoHasta] = useState('')
   const [bloqueoMotivo, setBloqueoMotivo] = useState('')
   const [savingBloqueo, setSavingBloqueo] = useState(false)
+  const [confirmDeleteFoto, setConfirmDeleteFoto] = useState<QuintaFoto | null>(null)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
@@ -88,8 +90,7 @@ export function SitioPublicoAdmin() {
   }
 
   const handleDeleteFoto = async (foto: QuintaFoto) => {
-    if (!confirm('¿Eliminar esta foto?')) return
-    await deleteFoto(foto)
+    setConfirmDeleteFoto(foto)
   }
 
   const handleAddBloqueo = async () => {
@@ -334,6 +335,14 @@ export function SitioPublicoAdmin() {
           </div>
         )}
       </div>
+
+      <ConfirmSheet
+        open={!!confirmDeleteFoto}
+        title="¿Eliminar esta foto?"
+        confirmLabel="Eliminar foto"
+        onConfirm={async () => { if (confirmDeleteFoto) await deleteFoto(confirmDeleteFoto); setConfirmDeleteFoto(null) }}
+        onCancel={() => setConfirmDeleteFoto(null)}
+      />
     </div>
   )
 }

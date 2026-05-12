@@ -32,6 +32,8 @@ function formatRelativo(t: Timestamp | Date) {
 export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
   const [accepting, setAccepting] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
+  const [confirmAccept, setConfirmAccept] = useState<string | null>(null)
+  const [confirmReject, setConfirmReject] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
   const pendientes = preReservas.filter((p) => p.estado === 'pendiente')
@@ -106,33 +108,69 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 border-t border-amber-200">
-                  <button
-                    onClick={async () => {
-                      if (!confirm(`¿Rechazar solicitud de ${pr.nombre}?`)) return
-                      setRejecting(pr.id)
-                      await onReject(pr.id)
-                      setRejecting(null)
-                    }}
-                    disabled={rejecting === pr.id || accepting === pr.id}
-                    className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition border-r border-amber-200 disabled:opacity-50"
-                  >
-                    <X size={14} />
-                    {rejecting === pr.id ? 'Rechazando...' : 'Rechazar'}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!confirm(`¿Aceptar y crear reserva para ${pr.nombre}?`)) return
-                      setAccepting(pr.id)
-                      await onAccept(pr)
-                      setAccepting(null)
-                    }}
-                    disabled={accepting === pr.id || rejecting === pr.id}
-                    className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition disabled:opacity-50"
-                  >
-                    <Check size={14} />
-                    {accepting === pr.id ? 'Creando...' : 'Aceptar'}
-                  </button>
+                <div className="border-t border-amber-200">
+                  {confirmReject === pr.id ? (
+                    <div className="flex items-center gap-2 px-4 py-3">
+                      <p className="text-xs text-slate-600 flex-1">¿Rechazar esta solicitud?</p>
+                      <button
+                        onClick={() => setConfirmReject(null)}
+                        className="px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setConfirmReject(null)
+                          setRejecting(pr.id)
+                          await onReject(pr.id)
+                          setRejecting(null)
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-slate-700 rounded-lg"
+                      >
+                        Sí, rechazar
+                      </button>
+                    </div>
+                  ) : confirmAccept === pr.id ? (
+                    <div className="flex items-center gap-2 px-4 py-3">
+                      <p className="text-xs text-slate-600 flex-1">¿Crear reserva para {pr.nombre}?</p>
+                      <button
+                        onClick={() => setConfirmAccept(null)}
+                        className="px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setConfirmAccept(null)
+                          setAccepting(pr.id)
+                          await onAccept(pr)
+                          setAccepting(null)
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg"
+                      >
+                        Sí, aceptar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2">
+                      <button
+                        onClick={() => setConfirmReject(pr.id)}
+                        disabled={rejecting === pr.id || accepting === pr.id}
+                        className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition border-r border-amber-200 disabled:opacity-50"
+                      >
+                        <X size={14} />
+                        {rejecting === pr.id ? 'Rechazando...' : 'Rechazar'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmAccept(pr.id)}
+                        disabled={accepting === pr.id || rejecting === pr.id}
+                        className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition disabled:opacity-50"
+                      >
+                        <Check size={14} />
+                        {accepting === pr.id ? 'Creando...' : 'Aceptar'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )

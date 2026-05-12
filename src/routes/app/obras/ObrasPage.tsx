@@ -6,6 +6,7 @@ import { ObraCard } from './components/ObraCard'
 import { ObraForm } from './components/ObraForm'
 import { ObraDetalle } from './components/ObraDetalle'
 import { cn } from '@/lib/cn'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 type Filtro = 'todas' | 'activa' | 'pausada' | 'finalizada'
 
@@ -14,6 +15,7 @@ export function ObrasPage() {
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [showForm, setShowForm] = useState(false)
   const [selected, setSelected] = useState<Obra | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState<Obra | null>(null)
 
   const filtradas = filtro === 'todas' ? obras : obras.filter((o) => o.estado === filtro)
@@ -29,9 +31,9 @@ export function ObrasPage() {
 
   const handleDelete = async () => {
     if (!selected) return
-    if (!confirm(`¿Eliminar "${selected.nombre}"?`)) return
     await deleteObra(selected.id)
     setSelected(null)
+    setConfirmDelete(false)
   }
 
   const FILTROS: { key: Filtro; label: string }[] = [
@@ -143,13 +145,22 @@ export function ObrasPage() {
           obra={selected}
           onClose={() => setSelected(null)}
           onEdit={() => { setEditing(selected); setSelected(null) }}
-          onDelete={handleDelete}
+          onDelete={() => setConfirmDelete(true)}
           onAddCobro={(c) => addCobro(selected, c)}
           onDeleteCobro={(id) => deleteCobro(selected, id)}
           onAddGasto={(g) => addGasto(selected, g)}
           onDeleteGasto={(id) => deleteGasto(selected, id)}
         />
       )}
+
+      <ConfirmSheet
+        open={confirmDelete}
+        title={`¿Eliminar "${selected?.nombre}"?`}
+        subtitle="Se borrarán todos sus datos."
+        confirmLabel="Eliminar obra"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

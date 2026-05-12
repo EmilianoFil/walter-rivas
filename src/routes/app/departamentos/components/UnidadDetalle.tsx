@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Unidad, PagoAlquiler, GastoUnidad } from '@/types'
 import { cn } from '@/lib/cn'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 interface Props {
   unidad: Unidad
@@ -71,6 +72,7 @@ export function UnidadDetalle({
   const [tab, setTab] = useState<Tab>('pagos')
   const [showPagoForm, setShowPagoForm] = useState(false)
   const [showGastoForm, setShowGastoForm] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const pagoForm = useForm<PagoForm>({
     resolver: zodResolver(pagoSchema) as Resolver<PagoForm>,
@@ -143,10 +145,7 @@ export function UnidadDetalle({
           </div>
           <div className="flex items-center gap-1">
             <button
-              onClick={async () => {
-                if (!confirm(`¿Eliminar "${unidad.nombre}"? Se borrarán todos sus datos.`)) return
-                await onDelete()
-              }}
+              onClick={() => setConfirmDelete(true)}
               className="p-1 text-slate-300 hover:text-red-400 transition"
               title="Eliminar unidad"
             >
@@ -378,6 +377,15 @@ export function UnidadDetalle({
           )}
         </div>
       </div>
+
+      <ConfirmSheet
+        open={confirmDelete}
+        title={`¿Eliminar "${unidad.nombre}"?`}
+        subtitle="Se borrarán todos sus datos."
+        confirmLabel="Eliminar unidad"
+        onConfirm={async () => { setConfirmDelete(false); await onDelete() }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Plus, Trash2, Tag, Save } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
 import { usePreciosQuinta, usePrecioBase, formatPrecio } from '@/hooks/usePreciosQuinta'
-import type { PrecioBase } from '@/types'
+import type { PrecioBase, PrecioQuinta } from '@/types'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 const DIAS: { key: keyof PrecioBase; label: string }[] = [
   { key: 'lun', label: 'Lunes' },
@@ -54,6 +55,7 @@ export function PreciosQuinta() {
   const [hasta, setHasta] = useState('')
   const [precio, setPrecio] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<PrecioQuinta | null>(null)
 
   const handleAdd = async () => {
     if (!nombre.trim() || !desde || !hasta || !precio) return
@@ -183,7 +185,7 @@ export function PreciosQuinta() {
                 <p className="text-[10px] text-slate-400">por noche</p>
               </div>
               <button
-                onClick={() => confirm(`¿Eliminar "${p.nombre}"?`) && deletePrecio(p.id)}
+                onClick={() => setConfirmDelete(p)}
                 className="p-1.5 text-slate-300 hover:text-red-400 transition-colors"
               >
                 <Trash2 size={15} />
@@ -192,6 +194,13 @@ export function PreciosQuinta() {
           ))}
         </div>
       )}
+      <ConfirmSheet
+        open={!!confirmDelete}
+        title={`¿Eliminar "${confirmDelete?.nombre}"?`}
+        confirmLabel="Eliminar período"
+        onConfirm={() => { if (confirmDelete) deletePrecio(confirmDelete.id); setConfirmDelete(null) }}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

@@ -42,7 +42,6 @@ export function CasaQuintaPage() {
 
   const handleDelete = async () => {
     if (!selectedReserva) return
-    if (!confirm(`¿Eliminar reserva de ${selectedReserva.inquilino.nombre}?`)) return
     await deleteReserva(selectedReserva.id)
     setSelectedReservaId(null)
   }

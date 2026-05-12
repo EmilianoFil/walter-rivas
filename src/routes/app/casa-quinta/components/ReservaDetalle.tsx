@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Reserva, PagoReserva } from '@/types'
 import { cn } from '@/lib/cn'
+import { ConfirmSheet } from '@/components/ConfirmSheet'
 
 interface Props {
   reserva: Reserva
@@ -45,6 +46,7 @@ const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-
 export function ReservaDetalle({ reserva, onClose, onEdit, onDelete, onAddPago, onDeletePago }: Props) {
   const [showPagoForm, setShowPagoForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const config = ESTADO_CONFIG[reserva.estado]
   const totalPagado = reserva.pagos.reduce((s, p) => s + p.monto, 0)
   const porcentaje = reserva.montoTotal > 0 ? Math.min((totalPagado / reserva.montoTotal) * 100, 100) : 0
@@ -242,7 +244,7 @@ export function ReservaDetalle({ reserva, onClose, onEdit, onDelete, onAddPago, 
         {/* Actions */}
         <div className="px-5 pb-5 pt-2 flex gap-2 border-t border-slate-100 flex-shrink-0">
           <button
-            onClick={onDelete}
+            onClick={() => setConfirmDelete(true)}
             className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition"
           >
             <Trash2 size={15} />
@@ -255,6 +257,14 @@ export function ReservaDetalle({ reserva, onClose, onEdit, onDelete, onAddPago, 
           </button>
         </div>
       </div>
+      <ConfirmSheet
+        open={confirmDelete}
+        title={`¿Eliminar reserva de ${reserva.inquilino.nombre}?`}
+        subtitle="Esta acción no se puede deshacer."
+        confirmLabel="Eliminar reserva"
+        onConfirm={() => { setConfirmDelete(false); onDelete() }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }
