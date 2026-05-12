@@ -1,0 +1,18 @@
+{
+  "name": "Rivas",
+  "short_name": "Rivas",
+  "description": "Panel de gestión Rivas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

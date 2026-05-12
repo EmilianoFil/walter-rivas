@@ -38,8 +38,8 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500 mb-4">
-            <span className="text-white font-bold text-2xl">R</span>
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white mb-4 shadow-lg">
+            <img src="/logo.png" alt="WR" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-white text-2xl font-semibold">Rivas</h1>
           <p className="text-slate-400 text-sm mt-1">Panel de gestión</p>

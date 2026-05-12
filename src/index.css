@@ -12,16 +12,57 @@
   html {
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
+    /* Previene el bounce/overscroll de iOS en el html raíz */
+    overscroll-behavior: none;
   }
 
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
     font-family: var(--font-sans);
+    overscroll-behavior: none;
+    /* Evita que el body sea seleccionable accidentalmente en mobile */
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  /* iOS Safari auto-zoom prevention: font-size < 16px en inputs dispara zoom.
-     Forzamos 16px y compensamos visualmente con transform scale. */
-  input, textarea, select {
-    font-size: 16px;
+  /* Texto sí seleccionable */
+  p, h1, h2, h3, h4, h5, h6, span, label, td, th, li {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* iOS Safari auto-zoom: cualquier input < 16px dispara zoom al hacer focus.
+     !important necesario para ganar sobre las clases de Tailwind (text-sm = 14px). */
+  input:not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+    /* Permite tap sin delay de 300ms */
+    touch-action: manipulation;
+  }
+
+  /* Elimina el delay de 300ms en tap para todos los elementos interactivos */
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="checkbox"],
+  [role="radio"],
+  label {
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  /* Previene callout en long-press sobre imágenes (menú "Guardar imagen") */
+  img {
+    -webkit-touch-callout: none;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  /* Permite interacción en imágenes que son botones */
+  a img,
+  button img {
+    pointer-events: auto;
   }
 }
