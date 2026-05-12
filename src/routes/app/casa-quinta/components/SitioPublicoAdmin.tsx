@@ -96,11 +96,12 @@ export function SitioPublicoAdmin() {
     if (!bloqueoDesde || !bloqueoHasta) return
     if (bloqueoHasta < bloqueoDesde) return
     setSavingBloqueo(true)
+    const motivo = bloqueoMotivo.trim()
     const nuevo: RangoBloqueado = {
       id: Date.now().toString(),
       desde: bloqueoDesde,
       hasta: bloqueoHasta,
-      motivo: bloqueoMotivo.trim() || undefined,
+      ...(motivo ? { motivo } : {}),
     }
     await saveConfig({ diasBloqueados: [...(config.diasBloqueados ?? []), nuevo] })
     setBloqueoDesde('')

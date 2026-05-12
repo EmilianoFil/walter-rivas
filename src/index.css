@@ -41,6 +41,14 @@
     touch-action: manipulation;
   }
 
+  /* Contiene el overscroll (rubber-band de iOS) dentro de cada scroll container.
+     Sin esto, el scroll de un modal flota independientemente del frame. */
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Elimina el delay de 300ms en tap para todos los elementos interactivos */
   button,
   a,

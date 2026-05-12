@@ -64,7 +64,7 @@ export function VehiculoForm({ vehiculo, onSubmit, onClose }: Props) {
         vencimiento: Timestamp.fromDate(new Date(data.seguroVto + 'T12:00:00')),
       },
       patente_vto: Timestamp.fromDate(new Date(data.patenteVto + 'T12:00:00')),
-      vtv_vto: data.vtvVto ? Timestamp.fromDate(new Date(data.vtvVto + 'T12:00:00')) : undefined,
+      ...(data.vtvVto ? { vtv_vto: Timestamp.fromDate(new Date(data.vtvVto + 'T12:00:00')) } : {}),
       activo: true,
     })
     onClose()
