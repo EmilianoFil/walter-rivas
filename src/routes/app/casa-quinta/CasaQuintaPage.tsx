@@ -22,23 +22,28 @@ export function CasaQuintaPage() {
 
   const [tab, setTab] = useState<Tab>('calendario')
   const [showForm, setShowForm] = useState(false)
-  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null)
+  const [selectedReservaId, setSelectedReservaId] = useState<string | null>(null)
   const [editingReserva, setEditingReserva] = useState<Reserva | null>(null)
 
+  // Siempre derivado del array actualizado por onSnapshot — nunca stale
+  const selectedReserva = selectedReservaId
+    ? (reservas.find((r) => r.id === selectedReservaId) ?? null)
+    : null
+
   const handleDayClick = (_date: Date, reserva?: Reserva) => {
-    if (reserva) setSelectedReserva(reserva)
+    if (reserva) setSelectedReservaId(reserva.id)
   }
 
   const handleEdit = () => {
     setEditingReserva(selectedReserva)
-    setSelectedReserva(null)
+    setSelectedReservaId(null)
   }
 
   const handleDelete = async () => {
     if (!selectedReserva) return
     if (!confirm(`¿Eliminar reserva de ${selectedReserva.inquilino.nombre}?`)) return
     await deleteReserva(selectedReserva.id)
-    setSelectedReserva(null)
+    setSelectedReservaId(null)
   }
 
   const totalIngresos = reservas.reduce((s, r) => s + r.pagos.reduce((ps, p) => ps + p.monto, 0), 0)
@@ -144,7 +149,7 @@ export function CasaQuintaPage() {
                       })
                       .slice(0, 3)
                       .map((r) => (
-                        <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
+                        <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReservaId(r.id)} />
                       ))}
                   </div>
                 </div>
@@ -184,7 +189,7 @@ export function CasaQuintaPage() {
               )}
               <div className="space-y-2">
                 {reservas.map((r) => (
-                  <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
+                  <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReservaId(r.id)} />
                 ))}
               </div>
             </div>
@@ -213,7 +218,7 @@ export function CasaQuintaPage() {
       {selectedReserva && (
         <ReservaDetalle
           reserva={selectedReserva}
-          onClose={() => setSelectedReserva(null)}
+          onClose={() => setSelectedReservaId(null)}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onAddPago={(pago) => addPago(selectedReserva.id, selectedReserva, pago)}
