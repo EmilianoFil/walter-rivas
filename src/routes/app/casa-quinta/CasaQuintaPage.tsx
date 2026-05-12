@@ -173,7 +173,7 @@ export function CasaQuintaPage() {
                   </p>
                   <SolicitudesAdmin
                     preReservas={preReservas}
-                    onAccept={acceptPreReserva}
+                    onAccept={(pr, montoTotal, seña) => acceptPreReserva(pr, montoTotal, seña)}
                     onReject={rejectPreReserva}
                   />
                 </div>

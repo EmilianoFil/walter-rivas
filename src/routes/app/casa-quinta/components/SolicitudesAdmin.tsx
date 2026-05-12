@@ -3,10 +3,11 @@ import { Check, X, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
 import type { PreReserva } from '@/types'
 import { cn } from '@/lib/cn'
+import { usePreciosQuinta, usePrecioBase, calcPrecioRango, formatPrecio } from '@/hooks/usePreciosQuinta'
 
 interface Props {
   preReservas: PreReserva[]
-  onAccept: (pr: PreReserva) => Promise<void>
+  onAccept: (pr: PreReserva, montoTotal: number, seña: number) => Promise<void>
   onReject: (id: string) => Promise<void>
 }
 
@@ -29,11 +30,122 @@ function formatRelativo(t: Timestamp | Date) {
   return `hace ${Math.round(diff / 1440)}d`
 }
 
+// ── Sheet de aceptación con precio calculado ──────────────────────────────────
+
+function AceptarSheet({
+  preReserva,
+  onConfirm,
+  onCancel,
+}: {
+  preReserva: PreReserva
+  onConfirm: (montoTotal: number, seña: number) => Promise<void>
+  onCancel: () => void
+}) {
+  const { precios } = usePreciosQuinta()
+  const { precioBase } = usePrecioBase()
+
+  const fechaDesde = toDate(preReserva.fechaDesde)
+  const fechaHasta = toDate(preReserva.fechaHasta)
+  const noches = diffDias(preReserva.fechaDesde, preReserva.fechaHasta)
+  const calculado = calcPrecioRango(precios, fechaDesde, fechaHasta, precioBase)
+
+  const [monto, setMonto] = useState(calculado !== null ? String(calculado) : '')
+  const [seña, setSeña] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const montoNum = Number(monto)
+  const señaNum = seña ? Number(seña) : 0
+  const valido = monto !== '' && montoNum >= 0
+
+  const handleConfirm = async () => {
+    if (!valido) return
+    setLoading(true)
+    await onConfirm(montoNum, señaNum)
+    setLoading(false)
+  }
+
+  const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400'
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full bg-white rounded-t-3xl px-5 pt-4 pb-8 space-y-4">
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto" />
+
+        {/* Header */}
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">Confirmar reserva</h3>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {preReserva.nombre} · {noches} noche{noches !== 1 ? 's' : ''}
+          </p>
+          <p className="text-xs text-slate-400">
+            {formatFecha(preReserva.fechaDesde)} → {formatFecha(preReserva.fechaHasta)}
+          </p>
+        </div>
+
+        {/* Precio calculado */}
+        {calculado !== null && (
+          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
+            <Check size={14} className="text-emerald-600 flex-shrink-0" />
+            <p className="text-sm text-emerald-800">
+              Precio según tarifas: <span className="font-semibold">{formatPrecio(calculado)}</span>
+            </p>
+          </div>
+        )}
+
+        {/* Monto total */}
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Monto total ($)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
+            placeholder="0"
+            className={inputCls}
+            autoFocus
+          />
+        </div>
+
+        {/* Seña */}
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Seña recibida ($, opcional)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={seña}
+            onChange={(e) => setSeña(e.target.value)}
+            placeholder="0"
+            className={inputCls}
+          />
+          {seña && montoNum > 0 && (
+            <p className="text-xs text-slate-400 mt-1">
+              Saldo pendiente: ${Math.max(0, montoNum - señaNum).toLocaleString('es-AR')}
+            </p>
+          )}
+        </div>
+
+        <button
+          onClick={handleConfirm}
+          disabled={loading || !valido}
+          className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-2xl text-sm font-semibold transition"
+        >
+          {loading ? 'Creando reserva...' : 'Crear reserva'}
+        </button>
+        <button onClick={onCancel} className="w-full py-2 text-sm text-slate-400">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
 export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
-  const [accepting, setAccepting] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
-  const [confirmAccept, setConfirmAccept] = useState<string | null>(null)
   const [confirmReject, setConfirmReject] = useState<string | null>(null)
+  const [aceptando, setAceptando] = useState<PreReserva | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
   const pendientes = preReservas.filter((p) => p.estado === 'pendiente')
@@ -130,44 +242,22 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
                         Sí, rechazar
                       </button>
                     </div>
-                  ) : confirmAccept === pr.id ? (
-                    <div className="flex items-center gap-2 px-4 py-3">
-                      <p className="text-xs text-slate-600 flex-1">¿Crear reserva para {pr.nombre}?</p>
-                      <button
-                        onClick={() => setConfirmAccept(null)}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-100 rounded-lg"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          setConfirmAccept(null)
-                          setAccepting(pr.id)
-                          await onAccept(pr)
-                          setAccepting(null)
-                        }}
-                        className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg"
-                      >
-                        Sí, aceptar
-                      </button>
-                    </div>
                   ) : (
                     <div className="grid grid-cols-2">
                       <button
                         onClick={() => setConfirmReject(pr.id)}
-                        disabled={rejecting === pr.id || accepting === pr.id}
+                        disabled={rejecting === pr.id}
                         className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 transition border-r border-amber-200 disabled:opacity-50"
                       >
                         <X size={14} />
                         {rejecting === pr.id ? 'Rechazando...' : 'Rechazar'}
                       </button>
                       <button
-                        onClick={() => setConfirmAccept(pr.id)}
-                        disabled={accepting === pr.id || rejecting === pr.id}
-                        className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition disabled:opacity-50"
+                        onClick={() => setAceptando(pr)}
+                        className="flex items-center justify-center gap-1.5 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition"
                       >
                         <Check size={14} />
-                        {accepting === pr.id ? 'Creando...' : 'Aceptar'}
+                        Aceptar
                       </button>
                     </div>
                   )}
@@ -225,6 +315,18 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Sheet de aceptación */}
+      {aceptando && (
+        <AceptarSheet
+          preReserva={aceptando}
+          onConfirm={async (montoTotal, seña) => {
+            await onAccept(aceptando, montoTotal, seña)
+            setAceptando(null)
+          }}
+          onCancel={() => setAceptando(null)}
+        />
       )}
     </div>
   )

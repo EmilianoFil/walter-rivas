@@ -19,7 +19,7 @@ export function usePreReservas() {
     })
   }, [])
 
-  const acceptPreReserva = async (pr: PreReserva) => {
+  const acceptPreReserva = async (pr: PreReserva, montoTotal: number, seña: number) => {
     await addDoc(collection(db, 'reservas'), {
       inquilino: {
         nombre: pr.nombre,
@@ -29,9 +29,9 @@ export function usePreReservas() {
       fechaDesde: pr.fechaDesde,
       fechaHasta: pr.fechaHasta,
       estado: 'reservado',
-      montoTotal: 0,
-      seña: 0,
-      saldoPendiente: 0,
+      montoTotal,
+      seña,
+      saldoPendiente: Math.max(0, montoTotal - seña),
       pagos: [],
       adjuntos: [],
       ...(pr.mensaje ? { notas: pr.mensaje } : {}),
