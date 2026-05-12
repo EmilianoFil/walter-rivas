@@ -36,9 +36,12 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 bg-slate-900 fixed inset-y-0 left-0 z-30">
+    // h-dvh + overflow-hidden en el root = scroll contenido en <main>, no en body.
+    // Esto hace que position:fixed funcione correctamente en iOS Safari.
+    <div className="h-dvh bg-slate-50 flex overflow-hidden">
+
+      {/* Desktop sidebar — flex normal, no fixed */}
+      <aside className="hidden lg:flex flex-col w-60 bg-slate-900 flex-shrink-0">
         <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
           <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">R</span>
@@ -77,23 +80,35 @@ export function AppLayout() {
         </div>
       </aside>
 
-      {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-40 bg-slate-900 flex items-center justify-between px-4 h-14">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-red-500 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">R</span>
+      {/* Columna derecha: header móvil + contenido scrollable */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Mobile header — estático dentro del flex, no fixed */}
+        <div className="lg:hidden bg-slate-900 flex items-center justify-between px-4 h-14 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-red-500 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">R</span>
+            </div>
+            <span className="text-white font-semibold text-sm">Rivas</span>
           </div>
-          <span className="text-white font-semibold text-sm">Rivas</span>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-slate-400 hover:text-white p-1"
+          >
+            <Menu size={22} />
+          </button>
         </div>
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="text-slate-400 hover:text-white p-1"
-        >
-          <Menu size={22} />
-        </button>
+
+        {/* Contenido con scroll propio */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto px-4 py-6">
+            <Outlet />
+          </div>
+        </main>
+
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — fixed está bien acá porque no hay scroll en body */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div
@@ -148,12 +163,6 @@ export function AppLayout() {
         </div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 min-h-screen">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <Outlet />
-        </div>
-      </main>
     </div>
   )
 }
