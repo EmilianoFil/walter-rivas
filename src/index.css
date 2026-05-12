@@ -41,6 +41,10 @@
     touch-action: manipulation;
   }
 
+  /* Oculta scrollbar visible pero mantiene scroll funcional */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
   /* Contiene el overscroll (rubber-band de iOS) dentro de cada scroll container.
      Sin esto, el scroll de un modal flota independientemente del frame. */
   .overflow-y-auto,

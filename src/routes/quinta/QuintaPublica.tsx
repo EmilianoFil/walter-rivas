@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { collection, doc, onSnapshot, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-import type { QuintaConfig, Reserva, RangoBloqueado } from '@/types'
+import type { QuintaConfig, Reserva, RangoBloqueado, PrecioQuinta } from '@/types'
 import { Phone, Mail, MapPin, ChevronLeft, ChevronRight, Check, X, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { getPrecioParaDia, calcPrecioRango, formatPrecio } from '@/hooks/usePreciosQuinta'
 
 const DEFAULT_CONFIG: QuintaConfig = {
   nombre: 'Casa Quinta',
@@ -53,6 +54,7 @@ function estaBloqueado(bloqueados: RangoBloqueado[], date: Date): boolean {
 interface CalProps {
   reservas: Reserva[]
   bloqueados: RangoBloqueado[]
+  precios: PrecioQuinta[]
   selStart: Date | null
   selEnd: Date | null
   onSelectStart: (d: Date) => void
@@ -60,7 +62,7 @@ interface CalProps {
   onClear: () => void
 }
 
-function Calendario({ reservas, bloqueados, selStart, selEnd, onSelectStart, onSelectEnd, onClear }: CalProps) {
+function Calendario({ reservas, bloqueados, precios, selStart, selEnd, onSelectStart, onSelectEnd, onClear }: CalProps) {
   const [mes, setMes] = useState(() => { const d = new Date(); d.setDate(1); return d })
 
   const year = mes.getFullYear()
@@ -119,13 +121,15 @@ function Calendario({ reservas, bloqueados, selStart, selEnd, onSelectStart, onS
           const unavailable = isUnavailable(day)
           const inRange = isInRange(day)
           const edge = isEdge(day)
+          const precioNoche = !unavailable ? getPrecioParaDia(precios, day) : null
 
           return (
             <div
               key={i}
               onClick={() => handleClick(day)}
               className={cn(
-                'flex items-center justify-center h-9 text-xs transition-colors',
+                'flex flex-col items-center justify-center gap-0 transition-colors',
+                precioNoche ? 'h-12' : 'h-9',
                 !unavailable && !edge && 'cursor-pointer',
                 inRange && 'bg-emerald-50',
                 edge && selStart && selEnd && (
@@ -141,6 +145,14 @@ function Calendario({ reservas, bloqueados, selStart, selEnd, onSelectStart, onS
               )}>
                 {day.getDate()}
               </span>
+              {precioNoche && (
+                <span className={cn(
+                  'text-[9px] font-medium leading-none',
+                  edge ? 'text-emerald-200' : 'text-emerald-600'
+                )}>
+                  {formatPrecio(precioNoche)}
+                </span>
+              )}
             </div>
           )
         })}
@@ -315,6 +327,7 @@ function FormSolicitud({ selStart, selEnd, whatsapp, nombreQuinta, onClose }: Fo
 export function QuintaPublica() {
   const [config, setConfig] = useState<QuintaConfig>(DEFAULT_CONFIG)
   const [reservas, setReservas] = useState<Reserva[]>([])
+  const [precios, setPrecios] = useState<PrecioQuinta[]>([])
   const [configLoaded, setConfigLoaded] = useState(false)
   const [reservasLoaded, setReservasLoaded] = useState(false)
 
@@ -332,7 +345,10 @@ export function QuintaPublica() {
       setReservas(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Reserva)))
       setReservasLoaded(true)
     })
-    return () => { u1(); u2() }
+    const u3 = onSnapshot(collection(db, 'precios_quinta'), (snap) => {
+      setPrecios(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PrecioQuinta)))
+    })
+    return () => { u1(); u2(); u3() }
   }, [])
 
   const loading = !configLoaded || !reservasLoaded
@@ -365,6 +381,9 @@ export function QuintaPublica() {
   const lo = selStart && selEnd ? (selStart <= selEnd ? selStart : selEnd) : selStart
   const hi = selStart && selEnd ? (selStart <= selEnd ? selEnd : selStart) : null
   const unavailableInRange = selStart && selEnd && rangeHasUnavailable()
+  const precioTotal = selStart && selEnd && !unavailableInRange
+    ? calcPrecioRango(precios, selStart, selEnd)
+    : null
 
   return (
     <div className="min-h-screen bg-white">
@@ -494,6 +513,7 @@ export function QuintaPublica() {
             <Calendario
               reservas={reservas}
               bloqueados={bloqueados}
+              precios={precios}
               selStart={selStart}
               selEnd={selEnd}
               onSelectStart={(d) => { setSelStart(d); setSelEnd(null) }}
@@ -601,7 +621,10 @@ export function QuintaPublica() {
           /* Selección completa y válida */
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-500">{noches} noche{noches !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-slate-500">
+                {noches} noche{noches !== 1 ? 's' : ''}
+                {precioTotal ? ` · ${formatPrecio(precioTotal)} total` : ''}
+              </p>
               <p className="text-sm font-semibold text-slate-900 truncate">
                 {lo ? formatCorta(lo) : ''} → {hi ? formatCorta(hi) : ''}
               </p>

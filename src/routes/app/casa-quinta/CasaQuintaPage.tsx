@@ -10,10 +10,11 @@ import { ReservaDetalle } from './components/ReservaDetalle'
 import { GastosQuinta } from './components/GastosQuinta'
 import { SitioPublicoAdmin } from './components/SitioPublicoAdmin'
 import { SolicitudesAdmin } from './components/SolicitudesAdmin'
+import { PreciosQuinta } from './components/PreciosQuinta'
 import { usePreReservas } from '@/hooks/usePreReservas'
 import { cn } from '@/lib/cn'
 
-type Tab = 'calendario' | 'reservas' | 'gastos' | 'sitio'
+type Tab = 'calendario' | 'reservas' | 'gastos' | 'precios' | 'sitio'
 
 export function CasaQuintaPage() {
   const { reservas, loading, addReserva, updateReserva, deleteReserva, addPago, deletePago } = useReservas()
@@ -54,8 +55,9 @@ export function CasaQuintaPage() {
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
     { key: 'calendario', label: 'Calendario' },
-    { key: 'reservas', label: `Reservas`, badge: solicitudesPendientes },
+    { key: 'reservas', label: 'Reservas', badge: solicitudesPendientes },
     { key: 'gastos', label: 'Gastos' },
+    { key: 'precios', label: 'Precios' },
     { key: 'sitio', label: 'Sitio' },
   ]
 
@@ -103,14 +105,14 @@ export function CasaQuintaPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
+      {/* Tabs — scrollable para caber en mobile */}
+      <div className="flex bg-slate-100 rounded-xl p-1 gap-1 overflow-x-auto no-scrollbar">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              'flex-1 py-2 rounded-lg text-xs font-medium transition-all relative',
+              'flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-all relative whitespace-nowrap',
               tab === t.key
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
@@ -198,6 +200,8 @@ export function CasaQuintaPage() {
           {tab === 'gastos' && (
             <GastosQuinta gastos={gastos} onAdd={addGasto} onDelete={deleteGasto} />
           )}
+
+          {tab === 'precios' && <PreciosQuinta />}
 
           {tab === 'sitio' && <SitioPublicoAdmin />}
         </>
