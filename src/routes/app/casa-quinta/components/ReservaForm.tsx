@@ -71,8 +71,8 @@ export function ReservaForm({ reserva, onSubmit, onClose }: Props) {
       inquilino: {
         nombre: data.nombre,
         telefono: data.telefono,
-        email: data.email || undefined,
-        dni: data.dni || undefined,
+        ...(data.email ? { email: data.email } : {}),
+        ...(data.dni ? { dni: data.dni } : {}),
       },
       fechaDesde: Timestamp.fromDate(desde),
       fechaHasta: Timestamp.fromDate(hasta),
@@ -82,7 +82,7 @@ export function ReservaForm({ reserva, onSubmit, onClose }: Props) {
         ? reserva.saldoPendiente
         : data.montoTotal,
       estado: reserva?.estado ?? 'libre',
-      notas: data.notas || undefined,
+      ...(data.notas ? { notas: data.notas } : {}),
     })
     onClose()
   }

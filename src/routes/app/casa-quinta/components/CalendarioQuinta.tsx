@@ -69,22 +69,22 @@ export function CalendarioQuinta({ reservas, onDayClick }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-          <ChevronLeft size={18} className="text-slate-600" />
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+        <button onClick={prev} className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+          <ChevronLeft size={16} className="text-slate-600" />
         </button>
         <span className="text-sm font-semibold text-slate-800">
           {MESES[month]} {year}
         </span>
-        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-          <ChevronRight size={18} className="text-slate-600" />
+        <button onClick={next} className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+          <ChevronRight size={16} className="text-slate-600" />
         </button>
       </div>
 
       {/* Day headers */}
       <div className="grid grid-cols-7 border-b border-slate-100">
         {DIAS.map((d) => (
-          <div key={d} className="text-center py-2 text-xs font-medium text-slate-400">
+          <div key={d} className="text-center py-1.5 text-[10px] font-medium text-slate-400 uppercase tracking-wide">
             {d}
           </div>
         ))}
@@ -93,7 +93,7 @@ export function CalendarioQuinta({ reservas, onDayClick }: Props) {
       {/* Days grid */}
       <div className="grid grid-cols-7">
         {cells.map((date, i) => {
-          if (!date) return <div key={`empty-${i}`} className="aspect-square" />
+          if (!date) return <div key={`empty-${i}`} className="h-8" />
 
           const estado = getEstadoForDate(date, reservas)
           const reserva = getReservaForDate(date, reservas)
@@ -104,10 +104,10 @@ export function CalendarioQuinta({ reservas, onDayClick }: Props) {
               key={date.toISOString()}
               onClick={() => onDayClick?.(date, reserva)}
               className={cn(
-                'aspect-square flex items-center justify-center text-sm transition-all relative',
+                'h-8 flex items-center justify-center text-xs transition-all',
                 estado ? ESTADO_STYLES[estado] : 'hover:bg-slate-50',
                 hoy && !estado && 'font-bold text-red-500',
-                hoy && estado && 'font-bold ring-2 ring-red-500 ring-inset'
+                hoy && estado && 'font-bold ring-2 ring-red-400 ring-inset rounded'
               )}
             >
               {date.getDate()}
@@ -117,18 +117,18 @@ export function CalendarioQuinta({ reservas, onDayClick }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 px-5 py-3 border-t border-slate-100 bg-slate-50">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-200" />
-          <span className="text-xs text-slate-500">Señado</span>
+      <div className="flex items-center gap-3 px-4 py-2 border-t border-slate-100 bg-slate-50">
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-sm bg-amber-100 border border-amber-200" />
+          <span className="text-[10px] text-slate-500">Señado</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-200" />
-          <span className="text-xs text-slate-500">Reservado</span>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-sm bg-emerald-100 border border-emerald-200" />
+          <span className="text-[10px] text-slate-500">Reservado</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-white border border-slate-200" />
-          <span className="text-xs text-slate-500">Libre</span>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-sm bg-white border border-slate-200" />
+          <span className="text-[10px] text-slate-500">Libre</span>
         </div>
       </div>
     </div>

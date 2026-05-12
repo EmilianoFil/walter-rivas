@@ -64,7 +64,7 @@ export function ReservaDetalle({ reserva, onClose, onEdit, onDelete, onAddPago, 
       monto: data.monto,
       tipo: data.tipo,
       fecha: Timestamp.fromDate(new Date(data.fecha + 'T12:00:00')),
-      notas: data.notas || undefined,
+      ...(data.notas ? { notas: data.notas } : {}),
     })
     reset()
     setShowPagoForm(false)
