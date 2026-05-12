@@ -18,4 +18,10 @@
     @apply bg-slate-50 text-slate-900 antialiased;
     font-family: var(--font-sans);
   }
+
+  /* iOS Safari auto-zoom prevention: font-size < 16px en inputs dispara zoom.
+     Forzamos 16px y compensamos visualmente con transform scale. */
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
