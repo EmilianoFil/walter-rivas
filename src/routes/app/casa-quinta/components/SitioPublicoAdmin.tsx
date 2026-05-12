@@ -2,9 +2,9 @@ import { useState, useRef } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Upload, Trash2, ExternalLink, Plus, X, GripVertical, Loader2 } from 'lucide-react'
+import { Upload, Trash2, ExternalLink, Plus, X, GripVertical, Loader2, Ban } from 'lucide-react'
 import { useQuintaConfig } from '@/hooks/useQuintaConfig'
-import type { QuintaFoto } from '@/types'
+import type { QuintaFoto, RangoBloqueado } from '@/types'
 import { cn } from '@/lib/cn'
 
 const schema = z.object({
@@ -18,6 +18,13 @@ type FormData = z.infer<typeof schema>
 
 const inputCls = 'w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition'
 
+function formatDateLabel(iso: string) {
+  const [y, m, d] = iso.split('-')
+  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString('es-AR', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
+}
+
 export function SitioPublicoAdmin() {
   const { config, loading, saveConfig, uploadFoto, deleteFoto } = useQuintaConfig()
   const [nuevoAmenity, setNuevoAmenity] = useState('')
@@ -25,6 +32,12 @@ export function SitioPublicoAdmin() {
   const [uploadPct, setUploadPct] = useState(0)
   const [saved, setSaved] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Blocked dates form state
+  const [bloqueoDesde, setBloqueoDesde] = useState('')
+  const [bloqueoHasta, setBloqueoHasta] = useState('')
+  const [bloqueoMotivo, setBloqueoMotivo] = useState('')
+  const [savingBloqueo, setSavingBloqueo] = useState(false)
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
@@ -58,9 +71,17 @@ export function SitioPublicoAdmin() {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
     setUploading(true)
-    for (const file of files) {
-      await uploadFoto(file, (pct) => setUploadPct(pct))
+    const nuevas: QuintaFoto[] = []
+    for (let i = 0; i < files.length; i++) {
+      const foto = await uploadFoto(files[i], (pct) => setUploadPct(pct))
+      nuevas.push(foto)
     }
+    // Un solo write atómico con todas las fotos nuevas
+    const todasFotos = [
+      ...config.fotos,
+      ...nuevas.map((f, i) => ({ ...f, orden: config.fotos.length + i })),
+    ]
+    await saveConfig({ fotos: todasFotos })
     setUploading(false)
     setUploadPct(0)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -69,6 +90,27 @@ export function SitioPublicoAdmin() {
   const handleDeleteFoto = async (foto: QuintaFoto) => {
     if (!confirm('¿Eliminar esta foto?')) return
     await deleteFoto(foto)
+  }
+
+  const handleAddBloqueo = async () => {
+    if (!bloqueoDesde || !bloqueoHasta) return
+    if (bloqueoHasta < bloqueoDesde) return
+    setSavingBloqueo(true)
+    const nuevo: RangoBloqueado = {
+      id: Date.now().toString(),
+      desde: bloqueoDesde,
+      hasta: bloqueoHasta,
+      motivo: bloqueoMotivo.trim() || undefined,
+    }
+    await saveConfig({ diasBloqueados: [...(config.diasBloqueados ?? []), nuevo] })
+    setBloqueoDesde('')
+    setBloqueoHasta('')
+    setBloqueoMotivo('')
+    setSavingBloqueo(false)
+  }
+
+  const handleDeleteBloqueo = async (id: string) => {
+    await saveConfig({ diasBloqueados: (config.diasBloqueados ?? []).filter((b) => b.id !== id) })
   }
 
   if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" /></div>
@@ -218,6 +260,74 @@ export function SitioPublicoAdmin() {
                 <div className="absolute top-1.5 left-1.5 bg-black/40 rounded-md p-1">
                   <GripVertical size={12} className="text-white" />
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Días no disponibles */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Días no disponibles</p>
+        <p className="text-xs text-slate-400">
+          Bloqueá fechas para uso propio o mantenimiento, sin necesidad de crear una reserva.
+        </p>
+
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Desde</label>
+              <input
+                type="date"
+                value={bloqueoDesde}
+                onChange={(e) => setBloqueoDesde(e.target.value)}
+                className={cn(inputCls, 'py-2')}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Hasta</label>
+              <input
+                type="date"
+                value={bloqueoHasta}
+                min={bloqueoDesde}
+                onChange={(e) => setBloqueoHasta(e.target.value)}
+                className={cn(inputCls, 'py-2')}
+              />
+            </div>
+          </div>
+          <input
+            value={bloqueoMotivo}
+            onChange={(e) => setBloqueoMotivo(e.target.value)}
+            className={inputCls}
+            placeholder="Motivo (opcional): uso personal, mantenimiento..."
+          />
+          <button
+            onClick={handleAddBloqueo}
+            disabled={!bloqueoDesde || !bloqueoHasta || savingBloqueo}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium disabled:opacity-40 transition"
+          >
+            <Ban size={14} />
+            {savingBloqueo ? 'Guardando...' : 'Bloquear días'}
+          </button>
+        </div>
+
+        {(config.diasBloqueados ?? []).length > 0 && (
+          <div className="space-y-2">
+            {(config.diasBloqueados ?? []).map((b) => (
+              <div key={b.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-3 py-2.5">
+                <div>
+                  <p className="text-sm text-slate-700 font-medium">
+                    {formatDateLabel(b.desde)}
+                    {b.desde !== b.hasta && <> → {formatDateLabel(b.hasta)}</>}
+                  </p>
+                  {b.motivo && <p className="text-xs text-slate-400 mt-0.5">{b.motivo}</p>}
+                </div>
+                <button
+                  onClick={() => handleDeleteBloqueo(b.id)}
+                  className="p-1.5 text-slate-300 hover:text-red-400 transition"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
           </div>

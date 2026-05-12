@@ -7,6 +7,13 @@ export interface QuintaFoto {
   orden: number
 }
 
+export interface RangoBloqueado {
+  id: string
+  desde: string  // YYYY-MM-DD
+  hasta: string  // YYYY-MM-DD
+  motivo?: string
+}
+
 export interface QuintaConfig {
   nombre: string
   descripcion: string
@@ -15,6 +22,7 @@ export interface QuintaConfig {
   contactoEmail: string
   whatsapp?: string
   ubicacion?: string
+  diasBloqueados?: RangoBloqueado[]
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

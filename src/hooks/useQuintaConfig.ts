@@ -14,6 +14,7 @@ const DEFAULT_CONFIG: QuintaConfig = {
   contactoEmail: '',
   whatsapp: '',
   ubicacion: '',
+  diasBloqueados: [],
 }
 
 export function useQuintaConfig() {
@@ -33,6 +34,7 @@ export function useQuintaConfig() {
     await setDoc(DOC_REF, { ...config, ...data }, { merge: true })
   }
 
+  // Sólo sube a Storage y devuelve el objeto foto — el caller hace el write a Firestore
   const uploadFoto = async (
     file: File,
     onProgress?: (pct: number) => void
@@ -47,10 +49,7 @@ export function useQuintaConfig() {
         reject,
         async () => {
           const url = await getDownloadURL(task.snapshot.ref)
-          const foto: QuintaFoto = { url, path, orden: config.fotos.length }
-          const nuevasFotos = [...config.fotos, foto]
-          await setDoc(DOC_REF, { ...config, fotos: nuevasFotos }, { merge: true })
-          resolve(foto)
+          resolve({ url, path, orden: 0 })
         }
       )
     })
