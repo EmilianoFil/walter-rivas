@@ -25,6 +25,22 @@ export interface QuintaConfig {
   diasBloqueados?: RangoBloqueado[]
 }
 
+// ─── Pre-reservas (solicitudes públicas) ─────────────────────────────────────
+export type EstadoPreReserva = 'pendiente' | 'aceptada' | 'rechazada'
+
+export interface PreReserva {
+  id: string
+  nombre: string
+  telefono: string
+  email?: string
+  personas?: number
+  mensaje?: string
+  fechaDesde: Timestamp
+  fechaHasta: Timestamp
+  estado: EstadoPreReserva
+  creadoEn: Timestamp
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export interface AppUser {
   uid: string

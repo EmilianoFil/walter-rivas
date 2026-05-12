@@ -9,6 +9,8 @@ import { ReservaForm } from './components/ReservaForm'
 import { ReservaDetalle } from './components/ReservaDetalle'
 import { GastosQuinta } from './components/GastosQuinta'
 import { SitioPublicoAdmin } from './components/SitioPublicoAdmin'
+import { SolicitudesAdmin } from './components/SolicitudesAdmin'
+import { usePreReservas } from '@/hooks/usePreReservas'
 import { cn } from '@/lib/cn'
 
 type Tab = 'calendario' | 'reservas' | 'gastos' | 'sitio'
@@ -16,6 +18,7 @@ type Tab = 'calendario' | 'reservas' | 'gastos' | 'sitio'
 export function CasaQuintaPage() {
   const { reservas, loading, addReserva, updateReserva, deleteReserva, addPago, deletePago } = useReservas()
   const { gastos, addGasto, deleteGasto } = useGastosQuinta()
+  const { preReservas, acceptPreReserva, rejectPreReserva } = usePreReservas()
 
   const [tab, setTab] = useState<Tab>('calendario')
   const [showForm, setShowForm] = useState(false)
@@ -42,9 +45,11 @@ export function CasaQuintaPage() {
   const totalGastos = gastos.reduce((s, g) => s + g.monto, 0)
   const reservasActivas = reservas.filter((r) => r.estado !== 'libre').length
 
-  const TABS: { key: Tab; label: string }[] = [
+  const solicitudesPendientes = preReservas.filter((p) => p.estado === 'pendiente').length
+
+  const TABS: { key: Tab; label: string; badge?: number }[] = [
     { key: 'calendario', label: 'Calendario' },
-    { key: 'reservas', label: `Reservas (${reservas.length})` },
+    { key: 'reservas', label: `Reservas`, badge: solicitudesPendientes },
     { key: 'gastos', label: 'Gastos' },
     { key: 'sitio', label: 'Sitio' },
   ]
@@ -100,13 +105,18 @@ export function CasaQuintaPage() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={cn(
-              'flex-1 py-2 rounded-lg text-xs font-medium transition-all',
+              'flex-1 py-2 rounded-lg text-xs font-medium transition-all relative',
               tab === t.key
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             )}
           >
             {t.label}
+            {(t.badge ?? 0) > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {t.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -148,13 +158,35 @@ export function CasaQuintaPage() {
           )}
 
           {tab === 'reservas' && (
-            <div className="space-y-2">
-              {reservas.length === 0 && (
-                <div className="text-center py-10 text-slate-400 text-sm">Sin reservas</div>
+            <div className="space-y-4">
+              {/* Solicitudes */}
+              {preReservas.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                    Solicitudes
+                  </p>
+                  <SolicitudesAdmin
+                    preReservas={preReservas}
+                    onAccept={acceptPreReserva}
+                    onReject={rejectPreReserva}
+                  />
+                </div>
               )}
-              {reservas.map((r) => (
-                <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
-              ))}
+
+              {/* Reservas */}
+              {preReservas.length > 0 && reservas.length > 0 && (
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Reservas confirmadas
+                </p>
+              )}
+              {reservas.length === 0 && preReservas.length === 0 && (
+                <div className="text-center py-10 text-slate-400 text-sm">Sin reservas ni solicitudes</div>
+              )}
+              <div className="space-y-2">
+                {reservas.map((r) => (
+                  <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
+                ))}
+              </div>
             </div>
           )}
 
