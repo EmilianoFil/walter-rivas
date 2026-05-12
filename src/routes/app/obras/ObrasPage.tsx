@@ -14,9 +14,11 @@ export function ObrasPage() {
   const { obras, loading, addObra, updateObra, deleteObra, addCobro, deleteCobro, addGasto, deleteGasto } = useObras()
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [showForm, setShowForm] = useState(false)
-  const [selected, setSelected] = useState<Obra | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState<Obra | null>(null)
+
+  const selected = selectedId ? (obras.find((o) => o.id === selectedId) ?? null) : null
 
   const filtradas = filtro === 'todas' ? obras : obras.filter((o) => o.estado === filtro)
 
@@ -32,7 +34,7 @@ export function ObrasPage() {
   const handleDelete = async () => {
     if (!selected) return
     await deleteObra(selected.id)
-    setSelected(null)
+    setSelectedId(null)
     setConfirmDelete(false)
   }
 
@@ -123,7 +125,7 @@ export function ObrasPage() {
       ) : (
         <div className="space-y-3">
           {filtradas.map((o) => (
-            <ObraCard key={o.id} obra={o} onClick={() => setSelected(o)} />
+            <ObraCard key={o.id} obra={o} onClick={() => setSelectedId(o.id)} />
           ))}
         </div>
       )}
@@ -143,13 +145,13 @@ export function ObrasPage() {
       {selected && (
         <ObraDetalle
           obra={selected}
-          onClose={() => setSelected(null)}
-          onEdit={() => { setEditing(selected); setSelected(null) }}
+          onClose={() => setSelectedId(null)}
+          onEdit={() => { setEditing(selected); setSelectedId(null) }}
           onDelete={() => setConfirmDelete(true)}
-          onAddCobro={(c) => addCobro(selected, c)}
-          onDeleteCobro={(id) => deleteCobro(selected, id)}
-          onAddGasto={(g) => addGasto(selected, g)}
-          onDeleteGasto={(id) => deleteGasto(selected, id)}
+          onAddCobro={(c) => addCobro(selected!, c)}
+          onDeleteCobro={(id) => deleteCobro(selected!, id)}
+          onAddGasto={(g) => addGasto(selected!, g)}
+          onDeleteGasto={(id) => deleteGasto(selected!, id)}
         />
       )}
 

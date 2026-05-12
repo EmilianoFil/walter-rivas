@@ -51,8 +51,10 @@ function UnidadDetalleWrapper({
 export function DepartamentosPage() {
   const { unidades, loading, addUnidad, updateUnidad, deleteUnidad } = useUnidades()
   const { pagos: todosPagos } = usePagosAlquiler()
-  const [selectedUnidad, setSelectedUnidad] = useState<Unidad | null>(null)
+  const [selectedUnidadId, setSelectedUnidadId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+
+  const selectedUnidad = selectedUnidadId ? (unidades.find((u) => u.id === selectedUnidadId) ?? null) : null
 
   // Helper: último pago de una unidad
   const ultimoPago = (unidadId: string): PagoAlquiler | undefined =>
@@ -176,7 +178,7 @@ export function DepartamentosPage() {
               unidad={u}
               ultimoPago={ultimoPago(u.id)}
               pagosPendientes={pagosPendientes(u.id)}
-              onClick={() => setSelectedUnidad(u)}
+              onClick={() => setSelectedUnidadId(u.id)}
             />
           ))}
         </div>
@@ -186,11 +188,11 @@ export function DepartamentosPage() {
       {selectedUnidad && (
         <UnidadDetalleWrapper
           unidad={selectedUnidad}
-          onClose={() => setSelectedUnidad(null)}
+          onClose={() => setSelectedUnidadId(null)}
           onUpdateInquilino={(data) => updateUnidad(selectedUnidad.id, { inquilino: data })}
           onDelete={async () => {
             await deleteUnidad(selectedUnidad.id)
-            setSelectedUnidad(null)
+            setSelectedUnidadId(null)
           }}
         />
       )}
