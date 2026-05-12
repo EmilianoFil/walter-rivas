@@ -1,7 +1,189 @@
+import { useState } from 'react'
+import { Plus, Home } from 'lucide-react'
+import type { Reserva } from '@/types'
+import { useReservas } from '@/hooks/useReservas'
+import { useGastosQuinta } from '@/hooks/useGastosQuinta'
+import { CalendarioQuinta } from './components/CalendarioQuinta'
+import { ReservaCard } from './components/ReservaCard'
+import { ReservaForm } from './components/ReservaForm'
+import { ReservaDetalle } from './components/ReservaDetalle'
+import { GastosQuinta } from './components/GastosQuinta'
+import { cn } from '@/lib/cn'
+
+type Tab = 'calendario' | 'reservas' | 'gastos'
+
 export function CasaQuintaPage() {
+  const { reservas, loading, addReserva, updateReserva, deleteReserva, addPago, deletePago } = useReservas()
+  const { gastos, addGasto, deleteGasto } = useGastosQuinta()
+
+  const [tab, setTab] = useState<Tab>('calendario')
+  const [showForm, setShowForm] = useState(false)
+  const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null)
+  const [editingReserva, setEditingReserva] = useState<Reserva | null>(null)
+
+  const handleDayClick = (_date: Date, reserva?: Reserva) => {
+    if (reserva) setSelectedReserva(reserva)
+  }
+
+  const handleEdit = () => {
+    setEditingReserva(selectedReserva)
+    setSelectedReserva(null)
+  }
+
+  const handleDelete = async () => {
+    if (!selectedReserva) return
+    if (!confirm(`¿Eliminar reserva de ${selectedReserva.inquilino.nombre}?`)) return
+    await deleteReserva(selectedReserva.id)
+    setSelectedReserva(null)
+  }
+
+  const totalIngresos = reservas.reduce((s, r) => s + r.pagos.reduce((ps, p) => ps + p.monto, 0), 0)
+  const totalGastos = gastos.reduce((s, g) => s + g.monto, 0)
+  const reservasActivas = reservas.filter((r) => r.estado !== 'libre').length
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'calendario', label: 'Calendario' },
+    { key: 'reservas', label: `Reservas (${reservas.length})` },
+    { key: 'gastos', label: 'Gastos' },
+  ]
+
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <p className="text-slate-400 text-sm">Próximamente — CasaQuintaPage</p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center">
+            <Home size={18} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Casa Quinta</h1>
+            <p className="text-xs text-slate-500">{reservasActivas} reservas activas</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-3 py-2 rounded-xl transition"
+        >
+          <Plus size={16} />
+          Reserva
+        </button>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100">
+          <p className="text-xs text-slate-500">Ingresos</p>
+          <p className="text-base font-bold text-slate-900 mt-0.5">
+            ${(totalIngresos / 1000).toFixed(0)}k
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100">
+          <p className="text-xs text-slate-500">Gastos</p>
+          <p className="text-base font-bold text-slate-900 mt-0.5">
+            ${(totalGastos / 1000).toFixed(0)}k
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-100">
+          <p className="text-xs text-slate-500">Utilidad</p>
+          <p className={cn('text-base font-bold mt-0.5', totalIngresos - totalGastos >= 0 ? 'text-emerald-600' : 'text-red-500')}>
+            ${((totalIngresos - totalGastos) / 1000).toFixed(0)}k
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex bg-slate-100 rounded-xl p-1 gap-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              'flex-1 py-2 rounded-lg text-xs font-medium transition-all',
+              tab === t.key
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="w-7 h-7 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" />
+        </div>
+      ) : (
+        <>
+          {tab === 'calendario' && (
+            <div className="space-y-4">
+              <CalendarioQuinta reservas={reservas} onDayClick={handleDayClick} />
+              {reservas.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Próximas
+                  </p>
+                  <div className="space-y-2">
+                    {reservas
+                      .filter((r) => {
+                        const hasta = r.fechaHasta instanceof Date ? r.fechaHasta : r.fechaHasta.toDate()
+                        return hasta >= new Date()
+                      })
+                      .slice(0, 3)
+                      .map((r) => (
+                        <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
+                      ))}
+                  </div>
+                </div>
+              )}
+              {reservas.length === 0 && (
+                <div className="text-center py-8 text-slate-400 text-sm">
+                  Sin reservas. Tocá + Reserva para crear una.
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'reservas' && (
+            <div className="space-y-2">
+              {reservas.length === 0 && (
+                <div className="text-center py-10 text-slate-400 text-sm">Sin reservas</div>
+              )}
+              {reservas.map((r) => (
+                <ReservaCard key={r.id} reserva={r} onClick={() => setSelectedReserva(r)} />
+              ))}
+            </div>
+          )}
+
+          {tab === 'gastos' && (
+            <GastosQuinta gastos={gastos} onAdd={addGasto} onDelete={deleteGasto} />
+          )}
+        </>
+      )}
+
+      {/* Modales */}
+      {(showForm || editingReserva) && (
+        <ReservaForm
+          reserva={editingReserva ?? undefined}
+          onSubmit={editingReserva
+            ? (data) => updateReserva(editingReserva.id, data)
+            : addReserva
+          }
+          onClose={() => { setShowForm(false); setEditingReserva(null) }}
+        />
+      )}
+
+      {selectedReserva && (
+        <ReservaDetalle
+          reserva={selectedReserva}
+          onClose={() => setSelectedReserva(null)}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onAddPago={(pago) => addPago(selectedReserva.id, selectedReserva, pago)}
+          onDeletePago={(pagoId) => deletePago(selectedReserva.id, selectedReserva, pagoId)}
+        />
+      )}
     </div>
   )
 }
