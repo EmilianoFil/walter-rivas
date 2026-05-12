@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, doc, onSnapshot, addDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-import type { QuintaConfig, Reserva, RangoBloqueado, PrecioQuinta } from '@/types'
+import type { QuintaConfig, Reserva, RangoBloqueado, PrecioQuinta, PrecioBase } from '@/types'
 import { Phone, Mail, MapPin, ChevronLeft, ChevronRight, Check, X, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { getPrecioParaDia, calcPrecioRango, formatPrecio } from '@/hooks/usePreciosQuinta'
@@ -55,6 +55,7 @@ interface CalProps {
   reservas: Reserva[]
   bloqueados: RangoBloqueado[]
   precios: PrecioQuinta[]
+  precioBase: PrecioBase | null
   selStart: Date | null
   selEnd: Date | null
   onSelectStart: (d: Date) => void
@@ -62,7 +63,7 @@ interface CalProps {
   onClear: () => void
 }
 
-function Calendario({ reservas, bloqueados, precios, selStart, selEnd, onSelectStart, onSelectEnd, onClear }: CalProps) {
+function Calendario({ reservas, bloqueados, precios, precioBase, selStart, selEnd, onSelectStart, onSelectEnd, onClear }: CalProps) {
   const [mes, setMes] = useState(() => { const d = new Date(); d.setDate(1); return d })
 
   const year = mes.getFullYear()
@@ -121,7 +122,7 @@ function Calendario({ reservas, bloqueados, precios, selStart, selEnd, onSelectS
           const unavailable = isUnavailable(day)
           const inRange = isInRange(day)
           const edge = isEdge(day)
-          const precioNoche = !unavailable ? getPrecioParaDia(precios, day) : null
+          const precioNoche = !unavailable ? getPrecioParaDia(precios, day, precioBase) : null
 
           return (
             <div
@@ -328,6 +329,7 @@ export function QuintaPublica() {
   const [config, setConfig] = useState<QuintaConfig>(DEFAULT_CONFIG)
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [precios, setPrecios] = useState<PrecioQuinta[]>([])
+  const [precioBase, setPrecioBase] = useState<PrecioBase | null>(null)
   const [configLoaded, setConfigLoaded] = useState(false)
   const [reservasLoaded, setReservasLoaded] = useState(false)
 
@@ -348,7 +350,10 @@ export function QuintaPublica() {
     const u3 = onSnapshot(collection(db, 'precios_quinta'), (snap) => {
       setPrecios(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PrecioQuinta)))
     })
-    return () => { u1(); u2(); u3() }
+    const u4 = onSnapshot(doc(db, 'quinta_config', 'precios_base'), (snap) => {
+      setPrecioBase(snap.exists() ? (snap.data() as PrecioBase) : null)
+    })
+    return () => { u1(); u2(); u3(); u4() }
   }, [])
 
   const loading = !configLoaded || !reservasLoaded
@@ -382,7 +387,7 @@ export function QuintaPublica() {
   const hi = selStart && selEnd ? (selStart <= selEnd ? selEnd : selStart) : null
   const unavailableInRange = selStart && selEnd && rangeHasUnavailable()
   const precioTotal = selStart && selEnd && !unavailableInRange
-    ? calcPrecioRango(precios, selStart, selEnd)
+    ? calcPrecioRango(precios, selStart, selEnd, precioBase)
     : null
 
   return (
@@ -514,6 +519,7 @@ export function QuintaPublica() {
               reservas={reservas}
               bloqueados={bloqueados}
               precios={precios}
+              precioBase={precioBase}
               selStart={selStart}
               selEnd={selEnd}
               onSelectStart={(d) => { setSelStart(d); setSelEnd(null) }}

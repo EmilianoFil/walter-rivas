@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, doc, query, orderBy, onSnapshot, addDoc, deleteDoc, setDoc, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-import type { PrecioQuinta } from '@/types'
+import type { PrecioQuinta, PrecioBase } from '@/types'
 
 const COL = 'precios_quinta'
 
@@ -28,10 +28,36 @@ export function usePreciosQuinta() {
   return { precios, loading, addPrecio, deletePrecio }
 }
 
-// ─── Helpers de precio (usados también en QuintaPublica) ─────────────────────
+export function usePrecioBase() {
+  const [precioBase, setPrecioBase] = useState<PrecioBase | null>(null)
+  const [loading, setLoading] = useState(true)
 
-export function getPrecioParaDia(precios: PrecioQuinta[], date: Date): number | null {
+  useEffect(() => {
+    return onSnapshot(doc(db, 'quinta_config', 'precios_base'), (snap) => {
+      setPrecioBase(snap.exists() ? (snap.data() as PrecioBase) : null)
+      setLoading(false)
+    })
+  }, [])
+
+  const savePrecioBase = async (data: PrecioBase) => {
+    await setDoc(doc(db, 'quinta_config', 'precios_base'), data)
+  }
+
+  return { precioBase, loading, savePrecioBase }
+}
+
+// ─── Helpers de precio ───────────────────────────────────────────────────────
+
+const DAY_KEYS: (keyof PrecioBase)[] = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab']
+
+export function getPrecioParaDia(
+  precios: PrecioQuinta[],
+  date: Date,
+  precioBase?: PrecioBase | null,
+): number | null {
   const iso = date.toISOString().split('T')[0]
+
+  // 1. Período especial tiene prioridad
   for (const p of precios) {
     const desde = p.desde instanceof Timestamp ? p.desde.toDate() : p.desde
     const hasta = p.hasta instanceof Timestamp ? p.hasta.toDate() : p.hasta
@@ -39,17 +65,30 @@ export function getPrecioParaDia(precios: PrecioQuinta[], date: Date): number | 
     const isoHasta = hasta.toISOString().split('T')[0]
     if (iso >= isoDesde && iso <= isoHasta) return p.precio
   }
+
+  // 2. Precio base del día de semana
+  if (precioBase) {
+    const key = DAY_KEYS[date.getDay()]
+    const base = precioBase[key]
+    if (base !== undefined) return base
+  }
+
   return null
 }
 
-export function calcPrecioRango(precios: PrecioQuinta[], start: Date, end: Date): number | null {
+export function calcPrecioRango(
+  precios: PrecioQuinta[],
+  start: Date,
+  end: Date,
+  precioBase?: PrecioBase | null,
+): number | null {
   const lo = start <= end ? start : end
   const hi = start <= end ? end : start
   let total = 0
   const cur = new Date(lo)
   while (cur < hi) {
-    const precio = getPrecioParaDia(precios, cur)
-    if (precio === null) return null // algún día sin precio → no mostramos total
+    const precio = getPrecioParaDia(precios, cur, precioBase)
+    if (precio === null) return null
     total += precio
     cur.setDate(cur.getDate() + 1)
   }

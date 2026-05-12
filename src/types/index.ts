@@ -98,6 +98,16 @@ export interface PrecioQuinta {
   notas?: string
 }
 
+export interface PrecioBase {
+  dom?: number
+  lun?: number
+  mar?: number
+  mie?: number
+  jue?: number
+  vie?: number
+  sab?: number
+}
+
 export interface GastoQuinta {
   id: string
   categoria: 'pasto' | 'limpieza' | 'impuestos' | 'mantenimiento' | 'otro'
