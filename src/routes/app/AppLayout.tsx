@@ -98,7 +98,7 @@ export function AppLayout() {
         </div>
 
         {/* Contenido con scroll propio */}
-        <main className="flex-1 overflow-y-auto overscroll-none">
+        <main className="flex-1 overflow-y-auto" style={{ overscrollBehavior: 'none' }}>
           <div className="max-w-5xl mx-auto px-4 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             <Outlet />
           </div>

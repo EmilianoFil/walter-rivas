@@ -50,7 +50,6 @@
   .overflow-y-auto,
   .overflow-y-scroll {
     overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
   }
 
   /* Elimina el delay de 300ms en tap para todos los elementos interactivos */
