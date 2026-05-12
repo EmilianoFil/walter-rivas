@@ -13,6 +13,7 @@ interface Props {
   gastos: GastoUnidad[]
   onClose: () => void
   onUpdateInquilino: (data: Unidad['inquilino']) => Promise<void>
+  onDelete: () => Promise<void>
   onAddPago: (data: Omit<PagoAlquiler, 'id' | 'adjuntos'>) => Promise<void>
   onMarkPagado: (id: string) => Promise<void>
   onDeletePago: (id: string) => Promise<void>
@@ -64,7 +65,7 @@ type Tab = 'pagos' | 'gastos' | 'inquilino'
 
 export function UnidadDetalle({
   unidad, pagos, gastos, onClose,
-  onUpdateInquilino, onAddPago, onMarkPagado, onDeletePago,
+  onUpdateInquilino, onDelete, onAddPago, onMarkPagado, onDeletePago,
   onAddGasto, onDeleteGasto,
 }: Props) {
   const [tab, setTab] = useState<Tab>('pagos')
@@ -140,9 +141,21 @@ export function UnidadDetalle({
               <p className="text-xs text-slate-500 mt-0.5">{unidad.inquilino.nombre}</p>
             )}
           </div>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={async () => {
+                if (!confirm(`¿Eliminar "${unidad.nombre}"? Se borrarán todos sus datos.`)) return
+                await onDelete()
+              }}
+              className="p-1 text-slate-300 hover:text-red-400 transition"
+              title="Eliminar unidad"
+            >
+              <Trash2 size={16} />
+            </button>
+            <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}

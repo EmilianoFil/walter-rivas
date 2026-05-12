@@ -6,6 +6,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
@@ -33,18 +34,9 @@ export function useUnidades() {
     await updateDoc(doc(db, COL, id), data)
   }
 
-  // Seed initial units if empty
-  const seedUnidades = async () => {
-    const iniciales: Omit<Unidad, 'id'>[] = [
-      { tipo: 'depto', nombre: 'Depto 1', inquilino: null, activo: true },
-      { tipo: 'depto', nombre: 'Depto 2', inquilino: null, activo: true },
-      { tipo: 'depto', nombre: 'Depto 3', inquilino: null, activo: true },
-      { tipo: 'local', nombre: 'Local', inquilino: null, activo: true },
-    ]
-    for (const u of iniciales) {
-      await addDoc(collection(db, COL), u)
-    }
+  const deleteUnidad = async (id: string) => {
+    await deleteDoc(doc(db, COL, id))
   }
 
-  return { unidades, loading, addUnidad, updateUnidad, seedUnidades }
+  return { unidades, loading, addUnidad, updateUnidad, deleteUnidad }
 }
