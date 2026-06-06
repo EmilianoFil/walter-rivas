@@ -382,22 +382,22 @@ export function ProyectoDetalle({
                   </div>
                 </form>
               ) : (
-                <div key={i.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-emerald-600">{formatMoney(i.monto)}</p>
+                <div key={i.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-base font-bold text-emerald-600">{formatMoney(i.monto)}</p>
                       {i.categoria && (
-                        <span className="text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full">{i.categoria}</span>
+                        <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{i.categoria}</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{formatFecha(i.fecha)}{i.descripcion ? ` · ${i.descripcion}` : ''}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{formatFecha(i.fecha)}{i.descripcion ? ` · ${i.descripcion}` : ''}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openEditIngreso(i)} className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors">
-                      <Edit2 size={14} />
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => openEditIngreso(i)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
+                      <Edit2 size={15} />
                     </button>
-                    <button onClick={() => setDeleteIngreso(i)} className="p-1.5 text-slate-300 hover:text-red-400 transition-colors">
-                      <Trash2 size={14} />
+                    <button onClick={() => setDeleteIngreso(i)} className="p-2 text-slate-300 hover:text-red-400 transition-colors">
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
@@ -495,23 +495,25 @@ export function ProyectoDetalle({
                   </div>
                 </form>
               ) : (
-                <div key={g.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-slate-700">{g.descripcion}</p>
+                <div key={g.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{g.descripcion}</p>
                       {g.categoria && (
-                        <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{g.categoria}</span>
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full flex-shrink-0">{g.categoria}</span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{formatFecha(g.fecha)}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-base font-bold text-red-500">{formatMoney(g.monto)}</p>
+                      <p className="text-xs text-slate-400">{formatFecha(g.fecha)}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <p className="text-sm font-semibold text-red-500 mr-1">{formatMoney(g.monto)}</p>
-                    <button onClick={() => openEditGasto(g)} className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors">
-                      <Edit2 size={14} />
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => openEditGasto(g)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
+                      <Edit2 size={15} />
                     </button>
-                    <button onClick={() => setDeleteGasto(g)} className="p-1.5 text-slate-300 hover:text-red-400 transition-colors">
-                      <Trash2 size={14} />
+                    <button onClick={() => setDeleteGasto(g)} className="p-2 text-slate-300 hover:text-red-400 transition-colors">
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </div>
