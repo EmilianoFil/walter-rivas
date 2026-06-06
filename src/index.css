@@ -1,11 +1,70 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* ── Keyframes globales (fuera de @layer para que los nombres sean accesibles) ── */
+
+@keyframes fade-in {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+/* Lightbox: siguiente entra desde la derecha, anterior desde la izquierda */
+@keyframes lb-next {
+  from { opacity: 0; transform: translateX(18%) }
+  to   { opacity: 1; transform: translateX(0) }
+}
+@keyframes lb-prev {
+  from { opacity: 0; transform: translateX(-18%) }
+  to   { opacity: 1; transform: translateX(0) }
+}
+@keyframes splash-pop {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes splash-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; }
+}
+.page-enter {
+  animation: page-in 0.18s ease-out both;
+}
 
 @theme {
-  --color-primary: #0f172a;
-  --color-primary-50: #f8fafc;
-  --color-accent: #e63946;
-  --color-accent-hover: #c1121f;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* ── Tipografía ── */
+  --font-sans: 'Chivo', system-ui, -apple-system, sans-serif;
+
+  /* ── Acento ── */
+  --color-accent: oklch(54% 0.22 25);
+  --color-accent-hover: oklch(47% 0.22 25);
+
+  /* ── Slate cálido (tintado hacia el acento rojo, hue 30) ──
+     Reemplaza el slate frío de Tailwind en toda la app       */
+  --color-slate-50:  oklch(97.8% 0.005 30);
+  --color-slate-100: oklch(95.2% 0.008 30);
+  --color-slate-200: oklch(90.5% 0.012 30);
+  --color-slate-300: oklch(83.5% 0.014 30);
+  --color-slate-400: oklch(68.5% 0.017 30);
+  --color-slate-500: oklch(55%   0.018 30);
+  --color-slate-600: oklch(44%   0.018 30);
+  --color-slate-700: oklch(35%   0.015 30);
+  --color-slate-800: oklch(27%   0.012 30);
+  --color-slate-900: oklch(18.5% 0.01  30);
+  --color-slate-950: oklch(12%   0.008 30);
+}
+
+@layer utilities {
+  .animate-fade-in  { animation: fade-in 0.25s ease-out }
+  .animate-lb-next  { animation: lb-next 0.28s ease-out }
+  .animate-lb-prev  { animation: lb-prev 0.28s ease-out }
+  /* Cifras tabulares: montos financieros quedan alineados en columna */
+  .nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
 }
 
 @layer base {
@@ -76,4 +135,19 @@
   button img {
     pointer-events: auto;
   }
+
+  /* Editor rico (Tiptap) */
+  .tiptap {
+    -webkit-user-select: text;
+    user-select: text;
+    cursor: text;
+  }
+  .tiptap p { margin: 0 0 0.5rem; }
+  .tiptap ul, .tiptap ol { padding-left: 1.25rem; margin: 0.25rem 0; }
+  .tiptap li { margin: 0.15rem 0; }
+  .tiptap h2 { font-size: 1rem; font-weight: 600; margin: 0.75rem 0 0.25rem; }
+  .tiptap hr { border-color: #e2e8f0; margin: 0.75rem 0; }
+  .tiptap strong { font-weight: 700; }
+
+  .tiptap strong { font-weight: 700; }
 }
