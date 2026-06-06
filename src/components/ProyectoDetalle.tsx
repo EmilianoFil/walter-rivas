@@ -183,7 +183,7 @@ export function ProyectoDetalle({
   ]
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col h-dvh">
 
       {/* Header */}
       <div className="flex-shrink-0 border-b border-slate-100 bg-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
