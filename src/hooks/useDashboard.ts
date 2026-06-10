@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, query, onSnapshot, Timestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-import type { Reserva, PagoAlquiler, Obra, MovimientoEmpresa, GastoQuinta, GastoUnidad, GastoVehiculo, Alerta } from '@/types'
+import type { Reserva, PagoAlquiler, Obra, EmpresaCliente, GastoQuinta, GastoUnidad, GastoVehiculo, Alerta, VerticalPermiso } from '@/types'
 
 export interface VerticalResumen {
   nombre: string
@@ -10,16 +10,20 @@ export interface VerticalResumen {
   egresos: number
 }
 
-export interface MesData {
-  mes: string
-  ingresos: number
-  egresos: number
+export interface RawData {
+  reservas: Reserva[]
+  gastosQuinta: GastoQuinta[]
+  pagosAlquiler: PagoAlquiler[]
+  gastosUnidad: GastoUnidad[]
+  obras: Obra[]
+  empresaClientes: EmpresaCliente[]
+  gastosVehiculo: GastoVehiculo[]
 }
 
 export interface DashboardData {
   verticales: VerticalResumen[]
-  grafico: MesData[]
   alertasActivas: Alerta[]
+  rawData: RawData
   loading: boolean
 }
 
@@ -27,108 +31,84 @@ function toDate(t: Timestamp | Date): Date {
   return t instanceof Date ? t : t.toDate()
 }
 
-function isMes(t: Timestamp | Date, year: number, month: number): boolean {
-  const d = toDate(t)
-  return d.getFullYear() === year && d.getMonth() === month
-}
-
-function mesLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString('es-AR', { month: 'short' })
-}
-
-// Últimos N meses
-function ultimosMeses(n: number): { year: number; month: number; label: string }[] {
-  const result = []
-  const now = new Date()
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    result.push({ year: d.getFullYear(), month: d.getMonth(), label: mesLabel(d.getFullYear(), d.getMonth()) })
-  }
-  return result
-}
-
-export function useDashboard(): DashboardData {
+export function useDashboard(puedeVer: (v: VerticalPermiso) => boolean, authLoading: boolean): DashboardData {
   const [reservas, setReservas] = useState<Reserva[]>([])
   const [gastosQuinta, setGastosQuinta] = useState<GastoQuinta[]>([])
   const [pagosAlquiler, setPagosAlquiler] = useState<PagoAlquiler[]>([])
   const [gastosUnidad, setGastosUnidad] = useState<GastoUnidad[]>([])
   const [obras, setObras] = useState<Obra[]>([])
-  const [movimientos, setMovimientos] = useState<MovimientoEmpresa[]>([])
+  const [empresaClientes, setEmpresaClientes] = useState<EmpresaCliente[]>([])
   const [gastosVehiculo, setGastosVehiculo] = useState<GastoVehiculo[]>([])
   const [alertas, setAlertas] = useState<Alerta[]>([])
   const [loaded, setLoaded] = useState(0)
 
-  const TOTAL = 8
+  const canQuinta  = !authLoading && puedeVer('quinta')
+  const canDeptos  = !authLoading && puedeVer('deptos')
+  const canObras   = !authLoading && puedeVer('obras')
+  const canEmpresa = !authLoading && puedeVer('empresa')
+  const canFlota   = !authLoading && puedeVer('flota')
+
+  const total = 1 + (canQuinta ? 2 : 0) + (canDeptos ? 2 : 0) + (canObras ? 1 : 0) + (canEmpresa ? 1 : 0) + (canFlota ? 1 : 0)
 
   useEffect(() => {
-    const subs = [
-      onSnapshot(query(collection(db, 'reservas')), s => { setReservas(s.docs.map(d => ({ id: d.id, ...d.data() } as Reserva))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'gastos_quinta')), s => { setGastosQuinta(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoQuinta))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'pagos_alquiler')), s => { setPagosAlquiler(s.docs.map(d => ({ id: d.id, ...d.data() } as PagoAlquiler))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'gastos_unidad')), s => { setGastosUnidad(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoUnidad))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'obras')), s => { setObras(s.docs.map(d => ({ id: d.id, ...d.data() } as Obra))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'movimientos_empresa')), s => { setMovimientos(s.docs.map(d => ({ id: d.id, ...d.data() } as MovimientoEmpresa))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'gastos_vehiculo')), s => { setGastosVehiculo(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoVehiculo))); setLoaded(n => n + 1) }),
-      onSnapshot(query(collection(db, 'alertas')), s => { setAlertas(s.docs.map(d => ({ id: d.id, ...d.data() } as Alerta))); setLoaded(n => n + 1) }),
-    ]
-    return () => subs.forEach(u => u())
-  }, [])
+    if (authLoading) return
+    setLoaded(0)
+    const subs: (() => void)[] = []
+    const inc = () => setLoaded(n => n + 1)
 
-  // ── Vertical: Casa Quinta ─────────────────────────────────────────────────
-  const quintaIngresos = reservas.reduce((s, r) => s + r.pagos.reduce((ps, p) => ps + p.monto, 0), 0)
-  const quintaEgresos = gastosQuinta.reduce((s, g) => s + g.monto, 0)
-
-  // ── Vertical: Deptos / Local ──────────────────────────────────────────────
-  const deptosIngresos = pagosAlquiler.filter(p => p.estado === 'pagado').reduce((s, p) => s + p.monto, 0)
-  const deptosEgresos = gastosUnidad.reduce((s, g) => s + g.monto, 0)
-
-  // ── Vertical: Obras ───────────────────────────────────────────────────────
-  const obrasIngresos = obras.reduce((s, o) => s + o.cobros.reduce((cs, c) => cs + c.monto, 0), 0)
-  const obrasEgresos = obras.reduce((s, o) => s + o.gastos.reduce((gs, g) => gs + g.monto, 0), 0)
-
-  // ── Vertical: Empresa ─────────────────────────────────────────────────────
-  const empresaIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0)
-  const empresaEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0)
-    + gastosVehiculo.reduce((s, g) => s + g.monto, 0)
-
-  const verticales: VerticalResumen[] = [
-    { nombre: 'Casa quinta', key: 'quinta', ingresos: quintaIngresos, egresos: quintaEgresos },
-    { nombre: 'Deptos / Local', key: 'deptos', ingresos: deptosIngresos, egresos: deptosEgresos },
-    { nombre: 'Obras', key: 'obras', ingresos: obrasIngresos, egresos: obrasEgresos },
-    { nombre: 'Empresa', key: 'empresa', ingresos: empresaIngresos, egresos: empresaEgresos },
-  ]
-
-  // ── Gráfico: últimos 6 meses ──────────────────────────────────────────────
-  const meses = ultimosMeses(6)
-
-  const grafico: MesData[] = meses.map(({ year, month, label }) => {
-    // Ingresos del mes
-    const quintaIng = reservas.reduce((s, r) =>
-      s + r.pagos.filter(p => isMes(p.fecha, year, month)).reduce((ps, p) => ps + p.monto, 0), 0)
-    const deptosIng = pagosAlquiler.filter(p => p.estado === 'pagado' && p.fechaPago && isMes(p.fechaPago, year, month))
-      .reduce((s, p) => s + p.monto, 0)
-    const obrasIng = obras.reduce((s, o) =>
-      s + o.cobros.filter(c => isMes(c.fecha, year, month)).reduce((cs, c) => cs + c.monto, 0), 0)
-    const empresaIng = movimientos.filter(m => m.tipo === 'ingreso' && isMes(m.fecha, year, month))
-      .reduce((s, m) => s + m.monto, 0)
-
-    // Egresos del mes
-    const quintaEg = gastosQuinta.filter(g => isMes(g.fecha, year, month)).reduce((s, g) => s + g.monto, 0)
-    const deptosEg = gastosUnidad.filter(g => isMes(g.fecha, year, month)).reduce((s, g) => s + g.monto, 0)
-    const obrasEg = obras.reduce((s, o) =>
-      s + o.gastos.filter(g => isMes(g.fecha, year, month)).reduce((gs, g) => gs + g.monto, 0), 0)
-    const empresaEg = movimientos.filter(m => m.tipo === 'egreso' && isMes(m.fecha, year, month))
-      .reduce((s, m) => s + m.monto, 0)
-    const flotaEg = gastosVehiculo.filter(g => isMes(g.fecha, year, month)).reduce((s, g) => s + g.monto, 0)
-
-    return {
-      mes: label,
-      ingresos: quintaIng + deptosIng + obrasIng + empresaIng,
-      egresos: quintaEg + deptosEg + obrasEg + empresaEg + flotaEg,
+    if (canQuinta) {
+      subs.push(onSnapshot(query(collection(db, 'reservas')),      s => { setReservas(s.docs.map(d => ({ id: d.id, ...d.data() } as Reserva))); inc() }))
+      subs.push(onSnapshot(query(collection(db, 'gastos_quinta')), s => { setGastosQuinta(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoQuinta))); inc() }))
     }
-  })
+    if (canDeptos) {
+      subs.push(onSnapshot(query(collection(db, 'pagos_alquiler')), s => { setPagosAlquiler(s.docs.map(d => ({ id: d.id, ...d.data() } as PagoAlquiler))); inc() }))
+      subs.push(onSnapshot(query(collection(db, 'gastos_unidad')),  s => { setGastosUnidad(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoUnidad))); inc() }))
+    }
+    if (canObras) {
+      subs.push(onSnapshot(query(collection(db, 'obras')), s => { setObras(s.docs.map(d => ({ id: d.id, ...d.data() } as Obra))); inc() }))
+    }
+    if (canEmpresa) {
+      subs.push(onSnapshot(query(collection(db, 'empresa_clientes')), s => { setEmpresaClientes(s.docs.map(d => ({ id: d.id, ...d.data() } as EmpresaCliente))); inc() }))
+    }
+    if (canFlota) {
+      subs.push(onSnapshot(query(collection(db, 'gastos_vehiculo')), s => { setGastosVehiculo(s.docs.map(d => ({ id: d.id, ...d.data() } as GastoVehiculo))); inc() }))
+    }
+    subs.push(onSnapshot(query(collection(db, 'alertas')), s => { setAlertas(s.docs.map(d => ({ id: d.id, ...d.data() } as Alerta))); inc() }))
 
-  // ── Alertas activas y urgentes ────────────────────────────────────────────
+    return () => subs.forEach(u => u())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, canQuinta, canDeptos, canObras, canEmpresa, canFlota])
+
+  // ── Verticales: all-time (solo las que el usuario puede ver) ─────────────
+  const verticales: VerticalResumen[] = [
+    puedeVer('quinta') && {
+      nombre: 'Casa quinta', key: 'quinta',
+      ingresos: reservas.reduce((s, r) => s + r.pagos.reduce((ps, p) => ps + p.monto, 0), 0),
+      egresos: gastosQuinta.reduce((s, g) => s + g.monto, 0),
+    },
+    puedeVer('deptos') && {
+      nombre: 'Deptos / Local', key: 'deptos',
+      ingresos: pagosAlquiler.filter(p => p.estado === 'pagado').reduce((s, p) => s + p.monto, 0),
+      egresos: gastosUnidad.reduce((s, g) => s + g.monto, 0),
+    },
+    puedeVer('obras') && {
+      nombre: 'Obras', key: 'obras',
+      ingresos: obras.reduce((s, o) => s + o.cobros.reduce((cs, c) => cs + c.monto, 0), 0),
+      egresos: obras.reduce((s, o) => s + o.gastos.reduce((gs, g) => gs + g.monto, 0), 0),
+    },
+    puedeVer('empresa') && {
+      nombre: 'Empresa', key: 'empresa',
+      ingresos: empresaClientes.reduce((s, c) => s + c.ingresos.reduce((cs, i) => cs + i.monto, 0), 0),
+      egresos:  empresaClientes.reduce((s, c) => s + c.gastos.reduce((cs, g) => cs + g.monto, 0), 0),
+    },
+    puedeVer('flota') && {
+      nombre: 'Flota', key: 'flota',
+      ingresos: 0,
+      egresos:  gastosVehiculo.reduce((s, g) => s + g.monto, 0),
+    },
+  ].filter(Boolean) as VerticalResumen[]
+
+  // ── Alertas activas ───────────────────────────────────────────────────────
   const alertasActivas = alertas
     .filter(a => {
       if (a.estado !== 'activa') return false
@@ -140,8 +120,8 @@ export function useDashboard(): DashboardData {
 
   return {
     verticales,
-    grafico,
     alertasActivas,
-    loading: loaded < TOTAL,
+    rawData: { reservas, gastosQuinta, pagosAlquiler, gastosUnidad, obras, empresaClientes, gastosVehiculo },
+    loading: authLoading || loaded < total,
   }
 }
