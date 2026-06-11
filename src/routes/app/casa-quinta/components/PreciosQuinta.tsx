@@ -144,7 +144,7 @@ export function PreciosQuinta() {
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1 block">Precio por noche ($)</label>
+          <label className="text-xs text-slate-500 mb-1 block">Precio por día ($)</label>
           <input
             type="number"
             inputMode="numeric"
@@ -182,7 +182,7 @@ export function PreciosQuinta() {
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-sm font-bold text-slate-800">{formatPrecio(p.precio)}</p>
-                <p className="text-[10px] text-slate-400">por noche</p>
+                <p className="text-[10px] text-slate-400">por día</p>
               </div>
               <button
                 onClick={() => setConfirmDelete(p)}

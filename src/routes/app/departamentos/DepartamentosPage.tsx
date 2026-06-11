@@ -7,6 +7,8 @@ import { usePagosAlquiler, useGastosUnidad } from '@/hooks/usePagosAlquiler'
 import { UnidadCard } from './components/UnidadCard'
 import { UnidadDetalle } from './components/UnidadDetalle'
 import { UnidadForm } from './components/UnidadForm'
+import { RecurrentesSection } from '@/components/RecurrentesSection'
+import { SkPage } from '@/components/Skeleton'
 
 function formatMoney(n: number) {
   return '$' + n.toLocaleString('es-AR')
@@ -29,7 +31,7 @@ function UnidadDetalleWrapper({
   onDelete: () => Promise<void>
 }) {
   const { pagos, addPago, markPagado, deletePago } = usePagosAlquiler(unidad.id)
-  const { gastos, addGasto, deleteGasto } = useGastosUnidad(unidad.id)
+  const { gastos, addGasto, updateGasto, deleteGasto } = useGastosUnidad(unidad.id)
 
   return (
     <UnidadDetalle
@@ -43,6 +45,7 @@ function UnidadDetalleWrapper({
       onMarkPagado={(id) => markPagado(id, new Date())}
       onDeletePago={deletePago}
       onAddGasto={addGasto}
+      onUpdateGasto={updateGasto}
       onDeleteGasto={deleteGasto}
     />
   )
@@ -81,15 +84,10 @@ export function DepartamentosPage() {
     .reduce((s, p) => s + p.monto, 0)
   const unidadesOcupadas = unidades.filter((u) => u.inquilino).length
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-7 h-7 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return <SkPage rows={3} />
 
   return (
+    <>
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -165,6 +163,9 @@ export function DepartamentosPage() {
         </div>
       )}
 
+      {/* Recurrentes */}
+      <RecurrentesSection vertical="deptos" />
+
       {/* Lista de unidades */}
       {unidades.length === 0 ? (
         <div className="text-center py-16">
@@ -184,26 +185,27 @@ export function DepartamentosPage() {
         </div>
       )}
 
-      {/* Detalle */}
-      {selectedUnidad && (
-        <UnidadDetalleWrapper
-          unidad={selectedUnidad}
-          onClose={() => setSelectedUnidadId(null)}
-          onUpdateInquilino={(data) => updateUnidad(selectedUnidad.id, { inquilino: data })}
-          onDelete={async () => {
-            await deleteUnidad(selectedUnidad.id)
-            setSelectedUnidadId(null)
-          }}
-        />
-      )}
-
-      {/* Form nueva unidad */}
-      {showForm && (
-        <UnidadForm
-          onSubmit={(data) => addUnidad({ ...data, inquilino: null, activo: true })}
-          onClose={() => setShowForm(false)}
-        />
-      )}
     </div>
+
+    {/* Modales — fuera del space-y-5 para que no reciban margin-top */}
+    {selectedUnidad && (
+      <UnidadDetalleWrapper
+        unidad={selectedUnidad}
+        onClose={() => setSelectedUnidadId(null)}
+        onUpdateInquilino={(data) => updateUnidad(selectedUnidad.id, { inquilino: data })}
+        onDelete={async () => {
+          await deleteUnidad(selectedUnidad.id)
+          setSelectedUnidadId(null)
+        }}
+      />
+    )}
+
+    {showForm && (
+      <UnidadForm
+        onSubmit={(data) => addUnidad({ ...data, inquilino: null, activo: true })}
+        onClose={() => setShowForm(false)}
+      />
+    )}
+    </>
   )
 }

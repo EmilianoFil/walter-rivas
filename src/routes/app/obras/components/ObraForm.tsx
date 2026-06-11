@@ -1,7 +1,7 @@
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import type { Obra } from '@/types'
 import { cn } from '@/lib/cn'
 
@@ -36,15 +36,28 @@ export function ObraForm({ obra, onSubmit, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">{obra ? 'Editar obra' : 'Nueva obra'}</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 bg-white flex flex-col sm:bg-black/50 sm:flex-row sm:items-center sm:justify-center sm:p-4">
+      <div className="hidden sm:block absolute inset-0" onClick={onClose} />
+
+      <div className="flex-1 flex flex-col min-h-0 sm:flex-none sm:relative sm:w-full sm:max-w-md sm:max-h-[90dvh] sm:rounded-2xl sm:bg-white sm:shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 px-4 border-b border-slate-100 flex-shrink-0"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: '1rem' }}
+        >
+          <button onClick={onClose} className="sm:hidden p-1 -ml-1 text-slate-500">
+            <ChevronLeft size={22} />
+          </button>
+          <h2 className="text-base font-semibold text-slate-900 flex-1">
+            {obra ? 'Editar obra' : 'Nueva obra'}
+          </h2>
+          <button onClick={onClose} className="hidden sm:block p-1 text-slate-400 hover:text-slate-600">
+            <X size={20} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit(submit)} className="px-5 py-4 space-y-4">
+        {/* Form */}
+        <form id="obra-form" onSubmit={handleSubmit(submit)} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4" style={{ touchAction: 'pan-y' }}>
           <div>
             <label className="text-xs text-slate-500 mb-1 block">Nombre de la obra</label>
             <input {...register('nombre')} className={inputCls} placeholder="Ej: Refacción cocina García" />
@@ -76,14 +89,29 @@ export function ObraForm({ obra, onSubmit, onClose }: Props) {
               </select>
             </div>
           </div>
-
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-600">Cancelar</button>
-            <button type="submit" disabled={isSubmitting} className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-50">
-              {isSubmitting ? 'Guardando...' : obra ? 'Guardar' : 'Crear obra'}
-            </button>
-          </div>
         </form>
+
+        {/* Bottom CTA */}
+        <div
+          className="px-4 pt-3 border-t border-slate-100 flex-shrink-0 flex gap-2"
+          style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="obra-form"
+            disabled={isSubmitting}
+            className="flex-1 py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-50 transition"
+          >
+            {isSubmitting ? 'Guardando…' : obra ? 'Guardar' : 'Crear obra'}
+          </button>
+        </div>
       </div>
     </div>
   )

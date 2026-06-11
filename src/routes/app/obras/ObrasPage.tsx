@@ -4,6 +4,7 @@ import type { Obra } from '@/types'
 import { useObras } from '@/hooks/useObras'
 import { ObraCard } from './components/ObraCard'
 import { ObraForm } from './components/ObraForm'
+import { SkPage } from '@/components/Skeleton'
 import { ObraDetalle } from './components/ObraDetalle'
 import { cn } from '@/lib/cn'
 import { ConfirmSheet } from '@/components/ConfirmSheet'
@@ -11,7 +12,7 @@ import { ConfirmSheet } from '@/components/ConfirmSheet'
 type Filtro = 'todas' | 'activa' | 'pausada' | 'finalizada'
 
 export function ObrasPage() {
-  const { obras, loading, addObra, updateObra, deleteObra, addCobro, deleteCobro, addGasto, deleteGasto } = useObras()
+  const { obras, loading, addObra, updateObra, deleteObra, addCobro, updateCobro, deleteCobro, addGasto, updateGasto, deleteGasto } = useObras()
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [showForm, setShowForm] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -45,15 +46,10 @@ export function ObrasPage() {
     { key: 'finalizada', label: 'Finalizadas' },
   ]
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-7 h-7 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" />
-      </div>
-    )
-  }
+  if (loading) return <SkPage rows={3} kpis={false} />
 
   return (
+    <>
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -130,39 +126,43 @@ export function ObrasPage() {
         </div>
       )}
 
-      {/* Modales */}
-      {(showForm || editing) && (
-        <ObraForm
-          obra={editing ?? undefined}
-          onSubmit={editing
-            ? (data) => updateObra(editing.id, data)
-            : addObra
-          }
-          onClose={() => { setShowForm(false); setEditing(null) }}
-        />
-      )}
-
-      {selected && (
-        <ObraDetalle
-          obra={selected}
-          onClose={() => setSelectedId(null)}
-          onEdit={() => { setEditing(selected); setSelectedId(null) }}
-          onDelete={() => setConfirmDelete(true)}
-          onAddCobro={(c) => addCobro(selected!, c)}
-          onDeleteCobro={(id) => deleteCobro(selected!, id)}
-          onAddGasto={(g) => addGasto(selected!, g)}
-          onDeleteGasto={(id) => deleteGasto(selected!, id)}
-        />
-      )}
-
-      <ConfirmSheet
-        open={confirmDelete}
-        title={`¿Eliminar "${selected?.nombre}"?`}
-        subtitle="Se borrarán todos sus datos."
-        confirmLabel="Eliminar obra"
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDelete(false)}
-      />
     </div>
+
+    {/* Modales — fuera del space-y-5 para que no reciban margin-top */}
+    {(showForm || editing) && (
+      <ObraForm
+        obra={editing ?? undefined}
+        onSubmit={editing
+          ? (data) => updateObra(editing.id, data)
+          : addObra
+        }
+        onClose={() => { setShowForm(false); setEditing(null) }}
+      />
+    )}
+
+    {selected && (
+      <ObraDetalle
+        obra={selected}
+        onClose={() => setSelectedId(null)}
+        onEdit={() => { setEditing(selected); setSelectedId(null) }}
+        onDelete={() => setConfirmDelete(true)}
+        onAddCobro={(c) => addCobro(selected!, c)}
+        onUpdateCobro={(id, data) => updateCobro(selected!, id, data)}
+        onDeleteCobro={(id) => deleteCobro(selected!, id)}
+        onAddGasto={(g) => addGasto(selected!, g)}
+        onUpdateGasto={(id, data) => updateGasto(selected!, id, data)}
+        onDeleteGasto={(id) => deleteGasto(selected!, id)}
+      />
+    )}
+
+    <ConfirmSheet
+      open={confirmDelete}
+      title={`¿Eliminar "${selected?.nombre}"?`}
+      subtitle="Se borrarán todos sus datos."
+      confirmLabel="Eliminar obra"
+      onConfirm={handleDelete}
+      onCancel={() => setConfirmDelete(false)}
+    />
+    </>
   )
 }

@@ -6,10 +6,11 @@ import {
   onSnapshot,
   addDoc,
   deleteDoc,
+  updateDoc,
   doc,
   Timestamp,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import type { GastoQuinta } from '@/types'
 
 const COL = 'gastos_quinta'
@@ -26,13 +27,17 @@ export function useGastosQuinta() {
     })
   }, [])
 
-  const addGasto = async (data: Omit<GastoQuinta, 'id' | 'adjuntos'>) => {
-    await addDoc(collection(db, COL), { ...data, adjuntos: [], fecha: Timestamp.fromDate(data.fecha instanceof Date ? data.fecha : (data.fecha as Timestamp).toDate()) })
+  const addGasto = async (data: Omit<GastoQuinta, 'id' | 'adjuntos' | 'creadoPor'>) => {
+    await addDoc(collection(db, COL), { ...data, adjuntos: [], creadoPor: auth.currentUser?.uid ?? '', fecha: Timestamp.fromDate(data.fecha instanceof Date ? data.fecha : (data.fecha as Timestamp).toDate()) })
+  }
+
+  const updateGasto = async (id: string, data: Partial<Omit<GastoQuinta, 'id' | 'adjuntos'>>) => {
+    await updateDoc(doc(db, COL, id), data)
   }
 
   const deleteGasto = async (id: string) => {
     await deleteDoc(doc(db, COL, id))
   }
 
-  return { gastos, loading, addGasto, deleteGasto }
+  return { gastos, loading, addGasto, updateGasto, deleteGasto }
 }

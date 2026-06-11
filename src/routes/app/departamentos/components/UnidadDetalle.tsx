@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeft, Plus, Trash2, Phone, CheckCircle, AlertCircle, Clock, User } from 'lucide-react'
+import { ChevronLeft, Plus, Trash2, Phone, CheckCircle, AlertCircle, Clock, User, Edit2, Check, X } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Unidad, PagoAlquiler, GastoUnidad } from '@/types'
+import { useCategorias } from '@/hooks/useCategorias'
+import { GraficoGastos } from '@/components/GraficoGastos'
 import { cn } from '@/lib/cn'
 import { ConfirmSheet } from '@/components/ConfirmSheet'
 
@@ -19,6 +21,7 @@ interface Props {
   onMarkPagado: (id: string) => Promise<void>
   onDeletePago: (id: string) => Promise<void>
   onAddGasto: (data: Omit<GastoUnidad, 'id' | 'adjuntos'>) => Promise<void>
+  onUpdateGasto: (id: string, data: Partial<Omit<GastoUnidad, 'id' | 'adjuntos'>>) => Promise<void>
   onDeleteGasto: (id: string) => Promise<void>
 }
 
@@ -31,6 +34,7 @@ const pagoSchema = z.object({
 type PagoForm = z.infer<typeof pagoSchema>
 
 const gastoSchema = z.object({
+  categoria: z.string().optional(),
   descripcion: z.string().min(1),
   monto: z.coerce.number().min(1),
   fecha: z.string().min(1),
@@ -67,11 +71,13 @@ type Tab = 'pagos' | 'gastos' | 'inquilino'
 export function UnidadDetalle({
   unidad, pagos, gastos, onClose,
   onUpdateInquilino, onDelete, onAddPago, onMarkPagado, onDeletePago,
-  onAddGasto, onDeleteGasto,
+  onAddGasto, onUpdateGasto, onDeleteGasto,
 }: Props) {
+  const { categorias } = useCategorias('deptos')
   const [tab, setTab] = useState<Tab>('pagos')
   const [showPagoForm, setShowPagoForm] = useState(false)
   const [showGastoForm, setShowGastoForm] = useState(false)
+  const [editingGastoId, setEditingGastoId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const pagoForm = useForm<PagoForm>({
@@ -81,6 +87,9 @@ export function UnidadDetalle({
   const gastoForm = useForm<GastoForm>({
     resolver: zodResolver(gastoSchema) as Resolver<GastoForm>,
     defaultValues: { fecha: new Date().toISOString().split('T')[0] },
+  })
+  const editGastoForm = useForm<GastoForm>({
+    resolver: zodResolver(gastoSchema) as Resolver<GastoForm>,
   })
   const inquilinoForm = useForm<InquilinoForm>({
     resolver: zodResolver(inquilinoSchema) as Resolver<InquilinoForm>,
@@ -105,12 +114,26 @@ export function UnidadDetalle({
   const submitGasto = async (data: GastoForm) => {
     await onAddGasto({
       unidadId: unidad.id,
+      categoria: data.categoria,
       descripcion: data.descripcion,
       monto: data.monto,
       fecha: Timestamp.fromDate(new Date(data.fecha + 'T12:00:00')),
     })
     gastoForm.reset()
     setShowGastoForm(false)
+  }
+
+  const openEditGasto = (g: typeof gastos[0]) => {
+    setEditingGastoId(g.id)
+    setShowGastoForm(false)
+    const fechaStr = g.fecha instanceof Date ? g.fecha.toISOString().split('T')[0] : g.fecha.toDate().toISOString().split('T')[0]
+    editGastoForm.reset({ categoria: g.categoria, descripcion: g.descripcion, monto: g.monto, fecha: fechaStr })
+  }
+
+  const submitEditGasto = async (data: GastoForm) => {
+    if (!editingGastoId) return
+    await onUpdateGasto(editingGastoId, { categoria: data.categoria, descripcion: data.descripcion, monto: data.monto, fecha: Timestamp.fromDate(new Date(data.fecha + 'T12:00:00')) })
+    setEditingGastoId(null)
   }
 
   const submitInquilino = async (data: InquilinoForm) => {
@@ -127,7 +150,8 @@ export function UnidadDetalle({
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
 
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-3 h-14 border-b border-slate-100 bg-white">
+      <div className="flex-shrink-0 border-b border-slate-100 bg-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="flex items-center gap-2 px-3 h-14">
         <button onClick={onClose} className="p-2 text-slate-600 hover:text-slate-900 transition">
           <ChevronLeft size={24} />
         </button>
@@ -152,6 +176,7 @@ export function UnidadDetalle({
           <Trash2 size={18} />
         </button>
       </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex-shrink-0 flex border-b border-slate-100">
@@ -172,7 +197,7 @@ export function UnidadDetalle({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4" style={{ touchAction: 'pan-y' }}>
 
         {/* ── PAGOS ── */}
         {tab === 'pagos' && (
@@ -260,19 +285,28 @@ export function UnidadDetalle({
             {showGastoForm && (
               <form onSubmit={gastoForm.handleSubmit(submitGasto)} className="bg-slate-50 rounded-2xl p-4 space-y-3 mb-2">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nuevo gasto</p>
-                <div>
-                  <label className="text-xs text-slate-500 mb-1 block">Descripción</label>
-                  <input {...gastoForm.register('descripcion')} placeholder="Ej: Reparación llave de paso" className={inputCls} />
-                </div>
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Categoría</label>
+                    <select {...gastoForm.register('categoria')} className={inputCls}>
+                      <option value="">Sin categoría</option>
+                      {categorias
+                        .filter((c) => c.tipo === 'egreso' || c.tipo === 'ambos')
+                        .map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                    </select>
+                  </div>
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">Monto</label>
                     <input {...gastoForm.register('monto')} type="number" inputMode="numeric" className={inputCls} />
                   </div>
-                  <div>
-                    <label className="text-xs text-slate-500 mb-1 block">Fecha</label>
-                    <input {...gastoForm.register('fecha')} type="date" className={inputCls} />
-                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Descripción</label>
+                  <input {...gastoForm.register('descripcion')} placeholder="Ej: Reparación llave de paso" className={inputCls} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Fecha</label>
+                  <input {...gastoForm.register('fecha')} type="date" className={inputCls} />
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setShowGastoForm(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600">Cancelar</button>
@@ -285,15 +319,58 @@ export function UnidadDetalle({
               <p className="text-sm text-slate-400 text-center py-12">Sin gastos registrados</p>
             )}
 
-            {gastos.map((g) => (
+            {gastos.length > 1 && (
+              <GraficoGastos gastos={gastos.map((g) => ({ categoria: g.categoria ?? 'Sin categoría', monto: g.monto }))} />
+            )}
+
+            {gastos.map((g) => editingGastoId === g.id ? (
+              <form key={g.id} onSubmit={editGastoForm.handleSubmit(submitEditGasto)} className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3 my-1">
+                <p className="text-xs font-semibold text-red-700 uppercase tracking-wider">Editar gasto</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Categoría</label>
+                    <select {...editGastoForm.register('categoria')} className={inputCls}>
+                      <option value="">Sin categoría</option>
+                      {categorias.filter((c) => c.tipo === 'egreso' || c.tipo === 'ambos').map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Monto</label>
+                    <input {...editGastoForm.register('monto')} type="number" inputMode="numeric" className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Descripción</label>
+                  <input {...editGastoForm.register('descripcion')} className={inputCls} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Fecha</label>
+                  <input {...editGastoForm.register('fecha')} type="date" className={inputCls} />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setEditingGastoId(null)} className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600">
+                    <X size={14} /> Cancelar
+                  </button>
+                  <button type="submit" disabled={editGastoForm.formState.isSubmitting} className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium disabled:opacity-50">
+                    <Check size={14} /> Guardar
+                  </button>
+                </div>
+              </form>
+            ) : (
               <div key={g.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
                 <div>
-                  <p className="text-sm text-slate-700">{g.descripcion}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-slate-700">{g.descripcion}</p>
+                    {g.categoria && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">{g.categoria}</span>}
+                  </div>
                   <p className="text-xs text-slate-400">{formatFecha(g.fecha)}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-slate-700">{formatMoney(g.monto)}</p>
-                  <button onClick={() => onDeleteGasto(g.id)} className="p-1.5 text-slate-300 hover:text-red-400">
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-semibold text-slate-700 mr-1">{formatMoney(g.monto)}</p>
+                  <button onClick={() => openEditGasto(g)} className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={() => onDeleteGasto(g.id)} className="p-1.5 text-slate-300 hover:text-red-400 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 </div>

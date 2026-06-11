@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, where, Timestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import type { Vehiculo, GastoVehiculo, KmUpdate } from '@/types'
 
 export function useFlota() {
@@ -54,13 +54,17 @@ export function useGastosVehiculo(vehiculoId?: string) {
     })
   }, [vehiculoId])
 
-  const addGasto = async (data: Omit<GastoVehiculo, 'id' | 'adjuntos'>) => {
-    await addDoc(collection(db, 'gastos_vehiculo'), { ...data, adjuntos: [] })
+  const addGasto = async (data: Omit<GastoVehiculo, 'id' | 'adjuntos' | 'creadoPor'>) => {
+    await addDoc(collection(db, 'gastos_vehiculo'), { ...data, adjuntos: [], creadoPor: auth.currentUser?.uid ?? '' })
+  }
+
+  const updateGasto = async (id: string, data: Partial<Omit<GastoVehiculo, 'id' | 'adjuntos'>>) => {
+    await updateDoc(doc(db, 'gastos_vehiculo', id), data)
   }
 
   const deleteGasto = async (id: string) => {
     await deleteDoc(doc(db, 'gastos_vehiculo', id))
   }
 
-  return { gastos, loading, addGasto, deleteGasto }
+  return { gastos, loading, addGasto, updateGasto, deleteGasto }
 }

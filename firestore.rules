@@ -1,7 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Público: micrositio de la quinta puede leer sin autenticación
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return request.auth != null && perfil().rol == 'admin';
+    }
+    function hasVertical(v) {
+      return request.auth != null && (isAdmin() || perfil().verticales.hasAny([v]));
+    }
+    function isColaborador(v) {
+      return request.auth != null && perfil().rol == 'colaborador' && perfil().verticalColaborador == v;
+    }
+
+    // ── Público: micrositio de la quinta ───────────────────────────────────────
     match /quinta_config/{doc} {
       allow read: if true;
       allow write: if request.auth != null;
@@ -14,12 +29,85 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null;
     }
-    // Pre-reservas: cualquiera puede crear, solo auth puede leer/modificar
     match /pre_reservas/{doc} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read: if true;
+      allow update, delete: if request.auth != null;
     }
-    // Todo lo demás requiere auth
+    match /resenas/{doc} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // ── Usuarios: solo auth puede leer su propio perfil; admin lee/escribe todo ─
+    match /usuarios/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ── Categorías: cualquier usuario autenticado puede leer; admin escribe ─────
+    match /categorias/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ── Configuración compartida: solo admin ────────────────────────────────────
+    match /config/{doc} {
+      allow read, write: if isAdmin();
+    }
+    match /fcm_tokens/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ── Casa Quinta ─────────────────────────────────────────────────────────────
+    match /gastos_quinta/{doc} {
+      allow read, write: if hasVertical('quinta');
+      // Colaboradores: solo pueden escribir y leer sus propios docs
+      allow create: if isColaborador('quinta') && request.resource.data.creadoPor == request.auth.uid;
+      allow read: if isColaborador('quinta') && resource.data.creadoPor == request.auth.uid;
+    }
+    match /movimientos_quinta/{doc} {
+      allow read, write: if hasVertical('quinta');
+      allow create: if isColaborador('quinta') && request.resource.data.creadoPor == request.auth.uid;
+      allow read, update, delete: if isColaborador('quinta') && resource.data.creadoPor == request.auth.uid;
+    }
+
+    // ── Departamentos ───────────────────────────────────────────────────────────
+    match /unidades/{doc} {
+      allow read, write: if hasVertical('deptos');
+    }
+    match /gastos_unidad/{doc} {
+      allow read, write: if hasVertical('deptos');
+    }
+    match /pagos_alquiler/{doc} {
+      allow read, write: if hasVertical('deptos');
+    }
+
+    // ── Obras ────────────────────────────────────────────────────────────────────
+    match /obras/{doc} {
+      allow read, write: if hasVertical('obras');
+    }
+
+    // ── Empresa ──────────────────────────────────────────────────────────────────
+    match /empresa_clientes/{doc} {
+      allow read, write: if hasVertical('empresa');
+    }
+
+    // ── Flota ────────────────────────────────────────────────────────────────────
+    match /vehiculos/{doc} {
+      allow read, write: if hasVertical('flota');
+    }
+    match /gastos_vehiculo/{doc} {
+      allow read, write: if hasVertical('flota');
+    }
+
+    // ── Alertas ──────────────────────────────────────────────────────────────────
+    match /alertas/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ── Fallback: autenticado puede leer/escribir todo lo no cubierto ─────────
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

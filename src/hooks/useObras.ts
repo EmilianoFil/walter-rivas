@@ -10,7 +10,7 @@ import {
   doc,
   Timestamp,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import type { Obra, CobroObra, GastoObra } from '@/types'
 
 const COL = 'obras'
@@ -46,9 +46,15 @@ export function useObras() {
     await deleteDoc(doc(db, COL, id))
   }
 
-  const addCobro = async (obra: Obra, cobro: Omit<CobroObra, 'id'>) => {
-    const nuevoCobro: CobroObra = { ...cobro, id: crypto.randomUUID() }
+  const addCobro = async (obra: Obra, cobro: Omit<CobroObra, 'id' | 'creadoPor'>) => {
+    const nuevoCobro: CobroObra = { ...cobro, id: crypto.randomUUID(), creadoPor: auth.currentUser?.uid ?? '' }
     await updateDoc(doc(db, COL, obra.id), { cobros: [...obra.cobros, nuevoCobro] })
+  }
+
+  const updateCobro = async (obra: Obra, cobroId: string, data: Partial<Omit<CobroObra, 'id'>>) => {
+    await updateDoc(doc(db, COL, obra.id), {
+      cobros: obra.cobros.map((c) => c.id === cobroId ? { ...c, ...data } : c),
+    })
   }
 
   const deleteCobro = async (obra: Obra, cobroId: string) => {
@@ -57,9 +63,15 @@ export function useObras() {
     })
   }
 
-  const addGasto = async (obra: Obra, gasto: Omit<GastoObra, 'id' | 'adjuntos'>) => {
-    const nuevoGasto: GastoObra = { ...gasto, id: crypto.randomUUID(), adjuntos: [] }
+  const addGasto = async (obra: Obra, gasto: Omit<GastoObra, 'id' | 'adjuntos' | 'creadoPor'>) => {
+    const nuevoGasto: GastoObra = { ...gasto, id: crypto.randomUUID(), adjuntos: [], creadoPor: auth.currentUser?.uid ?? '' }
     await updateDoc(doc(db, COL, obra.id), { gastos: [...obra.gastos, nuevoGasto] })
+  }
+
+  const updateGasto = async (obra: Obra, gastoId: string, data: Partial<Omit<GastoObra, 'id' | 'adjuntos'>>) => {
+    await updateDoc(doc(db, COL, obra.id), {
+      gastos: obra.gastos.map((g) => g.id === gastoId ? { ...g, ...data } : g),
+    })
   }
 
   const deleteGasto = async (obra: Obra, gastoId: string) => {
@@ -68,5 +80,5 @@ export function useObras() {
     })
   }
 
-  return { obras, loading, addObra, updateObra, deleteObra, addCobro, deleteCobro, addGasto, deleteGasto }
+  return { obras, loading, addObra, updateObra, deleteObra, addCobro, updateCobro, deleteCobro, addGasto, updateGasto, deleteGasto }
 }

@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "gastos_vehiculo",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vehiculoId", "order": "ASCENDING" },
+        { "fieldPath": "fecha",      "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pagos_alquiler",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unidadId",    "order": "ASCENDING" },
+        { "fieldPath": "vencimiento", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gastos_unidad",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unidadId", "order": "ASCENDING" },
+        { "fieldPath": "fecha",    "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

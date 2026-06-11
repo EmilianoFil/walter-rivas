@@ -46,7 +46,7 @@ function AceptarSheet({
 
   const fechaDesde = toDate(preReserva.fechaDesde)
   const fechaHasta = toDate(preReserva.fechaHasta)
-  const noches = diffDias(preReserva.fechaDesde, preReserva.fechaHasta)
+  const dias = diffDias(preReserva.fechaDesde, preReserva.fechaHasta)
   const calculado = calcPrecioRango(precios, fechaDesde, fechaHasta, precioBase)
 
   const [monto, setMonto] = useState(calculado !== null ? String(calculado) : '')
@@ -69,14 +69,14 @@ function AceptarSheet({
   return (
     <div className="fixed inset-0 z-[60] flex items-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full bg-white rounded-t-3xl px-5 pt-4 pb-8 space-y-4">
+      <div className="relative w-full bg-white rounded-t-3xl px-5 pt-4 space-y-4" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto" />
 
         {/* Header */}
         <div>
           <h3 className="text-base font-semibold text-slate-900">Confirmar reserva</h3>
           <p className="text-sm text-slate-500 mt-0.5">
-            {preReserva.nombre} · {noches} noche{noches !== 1 ? 's' : ''}
+            {preReserva.nombre} · {dias} día{dias !== 1 ? "s" : ""}
           </p>
           <p className="text-xs text-slate-400">
             {formatFecha(preReserva.fechaDesde)} → {formatFecha(preReserva.fechaHasta)}
@@ -170,7 +170,7 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
             Pendientes ({pendientes.length})
           </p>
           {pendientes.map((pr) => {
-            const noches = diffDias(pr.fechaDesde, pr.fechaHasta)
+            const dias = diffDias(pr.fechaDesde, pr.fechaHasta)
             return (
               <div
                 key={pr.id}
@@ -182,7 +182,7 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
                       <p className="font-semibold text-slate-900 text-sm">{pr.nombre}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {formatFecha(pr.fechaDesde)} → {formatFecha(pr.fechaHasta)}
-                        <span className="text-slate-400"> · {noches} noche{noches !== 1 ? 's' : ''}</span>
+                        <span className="text-slate-400"> · {dias} día{dias !== 1 ? "s" : ""}</span>
                       </p>
                       {pr.personas && (
                         <p className="text-xs text-slate-500">{pr.personas} persona{pr.personas !== 1 ? 's' : ''}</p>
@@ -282,7 +282,7 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
           {showHistory && (
             <div className="space-y-2 mt-1">
               {historial.map((pr) => {
-                const noches = diffDias(pr.fechaDesde, pr.fechaHasta)
+                const dias = diffDias(pr.fechaDesde, pr.fechaHasta)
                 return (
                   <div
                     key={pr.id}
@@ -297,7 +297,7 @@ export function SolicitudesAdmin({ preReservas, onAccept, onReject }: Props) {
                       <div>
                         <p className="font-medium text-slate-800 text-sm">{pr.nombre}</p>
                         <p className="text-xs text-slate-500">
-                          {formatFecha(pr.fechaDesde)} · {noches} noches
+                          {formatFecha(pr.fechaDesde)} · {dias} días
                         </p>
                       </div>
                       <span className={cn(

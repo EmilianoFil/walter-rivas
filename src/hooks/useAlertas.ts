@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import type { Alerta } from '@/types'
 
 const COL = 'alertas'
@@ -17,8 +17,8 @@ export function useAlertas() {
     })
   }, [])
 
-  const addAlerta = async (data: Omit<Alerta, 'id' | 'creadoEn' | 'estado'>) => {
-    await addDoc(collection(db, COL), { ...data, estado: 'activa', creadoEn: Timestamp.now() })
+  const addAlerta = async (data: Omit<Alerta, 'id' | 'creadoEn' | 'creadoPor' | 'estado'>) => {
+    await addDoc(collection(db, COL), { ...data, estado: 'activa', creadoEn: Timestamp.now(), creadoPor: auth.currentUser?.uid ?? '' })
   }
 
   const descartar = async (id: string) => {

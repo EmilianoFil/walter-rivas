@@ -20,7 +20,7 @@ export function usePreReservas() {
   }, [])
 
   const acceptPreReserva = async (pr: PreReserva, montoTotal: number, seña: number) => {
-    await addDoc(collection(db, 'reservas'), {
+    const reservaRef = await addDoc(collection(db, 'reservas'), {
       inquilino: {
         nombre: pr.nombre,
         telefono: pr.telefono,
@@ -37,7 +37,8 @@ export function usePreReservas() {
       ...(pr.mensaje ? { notas: pr.mensaje } : {}),
       creadoEn: Timestamp.now(),
     })
-    await updateDoc(doc(db, COL, pr.id), { estado: 'aceptada' })
+    // Guardamos reservaId para que la Cloud Function pueda leer el saldo directo
+    await updateDoc(doc(db, COL, pr.id), { estado: 'aceptada', reservaId: reservaRef.id })
   }
 
   const rejectPreReserva = async (id: string) => {

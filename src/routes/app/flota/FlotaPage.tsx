@@ -7,6 +7,8 @@ import { VehiculoCard } from './components/VehiculoCard'
 import { VehiculoForm } from './components/VehiculoForm'
 import { VehiculoDetalle } from './components/VehiculoDetalle'
 import { ConfirmSheet } from '@/components/ConfirmSheet'
+import { RecurrentesSection } from '@/components/RecurrentesSection'
+import { SkPage } from '@/components/Skeleton'
 
 function diasHasta(t: Timestamp | Date): number {
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
@@ -17,14 +19,16 @@ function diasHasta(t: Timestamp | Date): number {
 export function FlotaPage() {
   const { vehiculos, loading, addVehiculo, updateVehiculo, deleteVehiculo, updateKm } = useFlota()
   const [showForm, setShowForm] = useState(false)
-  const [selected, setSelected] = useState<Vehiculo | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Vehiculo | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const selected = selectedId ? (vehiculos.find((v) => v.id === selectedId) ?? null) : null
 
   const handleDelete = async () => {
     if (!selected) return
     await deleteVehiculo(selected.id)
-    setSelected(null)
+    setSelectedId(null)
     setConfirmDelete(false)
   }
 
@@ -39,9 +43,10 @@ export function FlotaPage() {
     return items
   })
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" /></div>
+  if (loading) return <SkPage rows={3} kpis={false} />
 
   return (
+    <>
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -84,36 +89,40 @@ export function FlotaPage() {
       ) : (
         <div className="space-y-3">
           {vehiculos.map((v) => (
-            <VehiculoCard key={v.id} vehiculo={v} onClick={() => setSelected(v)} />
+            <VehiculoCard key={v.id} vehiculo={v} onClick={() => setSelectedId(v.id)} />
           ))}
         </div>
       )}
 
-      {/* Modales */}
-      {(showForm || editing) && (
-        <VehiculoForm
-          vehiculo={editing ?? undefined}
-          onSubmit={editing ? (data) => updateVehiculo(editing.id, data) : addVehiculo}
-          onClose={() => { setShowForm(false); setEditing(null) }}
-        />
-      )}
+      <RecurrentesSection vertical="flota" />
 
-      {selected && (
-        <VehiculoDetalle
-          vehiculo={selected}
-          onClose={() => setSelected(null)}
-          onEdit={() => { setEditing(selected); setSelected(null) }}
-          onDelete={() => setConfirmDelete(true)}
-          onUpdateKm={(km) => updateKm(selected, km)}
-        />
-      )}
-      <ConfirmSheet
-        open={confirmDelete}
-        title={selected ? `¿Eliminar ${selected.marca} ${selected.modelo}?` : ''}
-        confirmLabel="Eliminar vehículo"
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDelete(false)}
-      />
     </div>
+
+    {/* Modales — fuera del space-y-5 para que no reciban margin-top */}
+    {(showForm || editing) && (
+      <VehiculoForm
+        vehiculo={editing ?? undefined}
+        onSubmit={editing ? (data) => updateVehiculo(editing.id, data) : addVehiculo}
+        onClose={() => { setShowForm(false); setEditing(null) }}
+      />
+    )}
+
+    {selected && (
+      <VehiculoDetalle
+        vehiculo={selected}
+        onClose={() => setSelectedId(null)}
+        onEdit={() => { setEditing(selected); setSelectedId(null) }}
+        onDelete={() => setConfirmDelete(true)}
+        onUpdateKm={(km) => updateKm(selected, km)}
+      />
+    )}
+    <ConfirmSheet
+      open={confirmDelete}
+      title={selected ? `¿Eliminar ${selected.marca} ${selected.modelo}?` : ''}
+      confirmLabel="Eliminar vehículo"
+      onConfirm={handleDelete}
+      onCancel={() => setConfirmDelete(false)}
+    />
+    </>
   )
 }

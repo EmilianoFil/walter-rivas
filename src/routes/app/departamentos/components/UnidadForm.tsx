@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,18 +30,26 @@ export function UnidadForm({ onSubmit, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl shadow-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Nueva unidad</h2>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col sm:bg-black/50 sm:flex-row sm:items-center sm:justify-center sm:p-4">
+      <div className="hidden sm:block absolute inset-0" onClick={onClose} />
+
+      <div className="flex-1 flex flex-col min-h-0 sm:flex-none sm:relative sm:w-full sm:max-w-sm sm:max-h-[90dvh] sm:rounded-2xl sm:bg-white sm:shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div
+          className="flex items-center gap-3 px-4 border-b border-slate-100 flex-shrink-0"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: '1rem' }}
+        >
+          <button onClick={onClose} className="sm:hidden p-1 -ml-1 text-slate-500">
+            <ChevronLeft size={22} />
+          </button>
+          <h2 className="text-base font-semibold text-slate-900 flex-1">Nueva unidad</h2>
+          <button onClick={onClose} className="hidden sm:block p-1 text-slate-400 hover:text-slate-600">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(submit)} className="space-y-4">
-          {/* Tipo */}
+        {/* Form */}
+        <form id="unidad-form" onSubmit={handleSubmit(submit)} className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 space-y-4" style={{ touchAction: 'pan-y' }}>
           <div>
             <label className="text-xs text-slate-500 mb-2 block">Tipo</label>
             <div className="grid grid-cols-2 gap-2">
@@ -60,7 +68,6 @@ export function UnidadForm({ onSubmit, onClose }: Props) {
             </div>
           </div>
 
-          {/* Nombre */}
           <div>
             <label className="text-xs text-slate-500 mb-1 block">Nombre</label>
             <input
@@ -71,24 +78,29 @@ export function UnidadForm({ onSubmit, onClose }: Props) {
             />
             {errors.nombre && <p className="text-red-500 text-xs mt-0.5">{errors.nombre.message}</p>}
           </div>
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-slate-200 text-sm text-slate-600 font-medium"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-medium disabled:opacity-50 transition"
-            >
-              {isSubmitting ? 'Creando...' : 'Crear unidad'}
-            </button>
-          </div>
         </form>
+
+        {/* Bottom CTA */}
+        <div
+          className="px-4 pt-3 border-t border-slate-100 flex-shrink-0 flex gap-2"
+          style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="unidad-form"
+            disabled={isSubmitting}
+            className="flex-1 py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-50 transition"
+          >
+            {isSubmitting ? 'Creando…' : 'Crear unidad'}
+          </button>
+        </div>
       </div>
     </div>
   )

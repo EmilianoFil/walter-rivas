@@ -10,7 +10,7 @@ import {
   doc,
   Timestamp,
 } from 'firebase/firestore'
-import { db } from '@/lib/firebase/config'
+import { db, auth } from '@/lib/firebase/config'
 import type { Reserva, PagoReserva, EstadoReserva } from '@/types'
 
 const COL = 'reservas'
@@ -27,12 +27,13 @@ export function useReservas() {
     })
   }, [])
 
-  const addReserva = async (data: Omit<Reserva, 'id' | 'creadoEn' | 'pagos' | 'adjuntos'>) => {
+  const addReserva = async (data: Omit<Reserva, 'id' | 'creadoEn' | 'creadoPor' | 'pagos' | 'adjuntos'>) => {
     await addDoc(collection(db, COL), {
       ...data,
       pagos: [],
       adjuntos: [],
       creadoEn: Timestamp.now(),
+      creadoPor: auth.currentUser?.uid ?? '',
     })
   }
 

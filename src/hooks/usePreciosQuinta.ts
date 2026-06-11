@@ -81,12 +81,15 @@ export function calcPrecioRango(
   start: Date,
   end: Date,
   precioBase?: PrecioBase | null,
+  noches = true,
 ): number | null {
   const lo = start <= end ? start : end
   const hi = start <= end ? end : start
   let total = 0
   const cur = new Date(lo)
-  while (cur < hi) {
+  // Noches: itera [lo, hi) — el día de checkout no se cobra
+  // Días:   itera [lo, hi] — todos los días seleccionados se cobran
+  while (noches ? cur < hi : cur <= hi) {
     const precio = getPrecioParaDia(precios, cur, precioBase)
     if (precio === null) return null
     total += precio

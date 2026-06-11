@@ -1,12 +1,17 @@
-import { useState, useRef } from 'react'
-import { useForm, type Resolver } from 'react-hook-form'
+import { useState, useRef, useEffect } from 'react'
+import { useForm, Controller, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Upload, Trash2, ExternalLink, Plus, X, GripVertical, Loader2, Ban } from 'lucide-react'
+import { Upload, Trash2, ExternalLink, Plus, X, GripVertical, Loader2, Ban, RefreshCw, Mail, MailX } from 'lucide-react'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import { app } from '@/lib/firebase/config'
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase/config'
 import { useQuintaConfig } from '@/hooks/useQuintaConfig'
 import type { QuintaFoto, RangoBloqueado } from '@/types'
 import { cn } from '@/lib/cn'
 import { ConfirmSheet } from '@/components/ConfirmSheet'
+import { RichTextEditor } from '@/components/RichTextEditor'
 
 const schema = z.object({
   nombre: z.string().min(1, 'Requerido'),
@@ -41,7 +46,7 @@ export function SitioPublicoAdmin() {
   const [savingBloqueo, setSavingBloqueo] = useState(false)
   const [confirmDeleteFoto, setConfirmDeleteFoto] = useState<QuintaFoto | null>(null)
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     values: {
       nombre: config.nombre,
@@ -147,8 +152,17 @@ export function SitioPublicoAdmin() {
 
         <div>
           <label className="text-xs text-slate-500 mb-1 block">Descripción</label>
-          <textarea {...register('descripcion')} rows={4} className={cn(inputCls, 'resize-none')}
-            placeholder="Contá algo sobre la quinta, su ambiente, qué la hace especial..." />
+          <Controller
+            control={control}
+            name="descripcion"
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Contá algo sobre la quinta, su ambiente, qué la hace especial..."
+              />
+            )}
+          />
           {errors.descripcion && <p className="text-red-500 text-xs mt-0.5">{errors.descripcion.message}</p>}
         </div>
 
@@ -268,6 +282,89 @@ export function SitioPublicoAdmin() {
         )}
       </div>
 
+      {/* Información para emails automáticos */}
+      <div className="space-y-4">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Información para emails</p>
+        <p className="text-xs text-slate-400">
+          Se incluye en los mails automáticos al huésped (confirmación, recordatorio de check-in, etc).
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Hora de check-in</label>
+            <input
+              type="time"
+              value={config.horaCheckin ?? ''}
+              onChange={(e) => saveConfig({ horaCheckin: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Hora de check-out</label>
+            <input
+              type="time"
+              value={config.horaCheckout ?? ''}
+              onChange={(e) => saveConfig({ horaCheckout: e.target.value })}
+              className={inputCls}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Link Google Maps</label>
+          <input
+            value={config.googleMapsUrl ?? ''}
+            onChange={(e) => saveConfig({ googleMapsUrl: e.target.value })}
+            className={inputCls}
+            placeholder="https://maps.google.com/..."
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Instrucciones de acceso (para email D-2)</label>
+          <textarea
+            value={config.instruccionesCheckin ?? ''}
+            onChange={(e) => saveConfig({ instruccionesCheckin: e.target.value })}
+            rows={4}
+            className={cn(inputCls, 'resize-none')}
+            placeholder="Ej: Al llegar al portón azul, tocar el timbre. El código de la caja chica es 1234..."
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Normativa de checkout (para email D-1)</label>
+          <textarea
+            value={config.normativaCheckout ?? ''}
+            onChange={(e) => saveConfig({ normativaCheckout: e.target.value })}
+            rows={4}
+            className={cn(inputCls, 'resize-none')}
+            placeholder="Ej: Dejar la pileta limpia, sacar la basura, dejar las llaves en la caja..."
+          />
+        </div>
+      </div>
+
+      {/* Hold — tiempo de reserva pendiente */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Solicitudes del sitio</p>
+        <p className="text-xs text-slate-400">
+          Cuánto tiempo bloquean el calendario las solicitudes recibidas mientras esperan tu respuesta.
+        </p>
+        <div>
+          <label className="text-xs text-slate-500 mb-1 block">Tiempo de hold</label>
+          <select
+            value={config.holdHoras ?? 24}
+            onChange={(e) => saveConfig({ holdHoras: Number(e.target.value) })}
+            className={inputCls}
+          >
+            <option value={6}>6 horas</option>
+            <option value={12}>12 horas</option>
+            <option value={24}>24 horas (recomendado)</option>
+            <option value={48}>48 horas</option>
+            <option value={72}>72 horas</option>
+          </select>
+        </div>
+      </div>
+
       {/* Días no disponibles */}
       <div className="space-y-3">
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Días no disponibles</p>
@@ -336,6 +433,9 @@ export function SitioPublicoAdmin() {
         )}
       </div>
 
+      {/* Sistema */}
+      <SistemaAcciones />
+
       <ConfirmSheet
         open={!!confirmDeleteFoto}
         title="¿Eliminar esta foto?"
@@ -343,6 +443,113 @@ export function SitioPublicoAdmin() {
         onConfirm={async () => { if (confirmDeleteFoto) await deleteFoto(confirmDeleteFoto); setConfirmDeleteFoto(null) }}
         onCancel={() => setConfirmDeleteFoto(null)}
       />
+    </div>
+  )
+}
+
+function SistemaAcciones() {
+  const [estado, setEstado] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
+  const [detalle, setDetalle] = useState('')
+  const [emailsActivos, setEmailsActivos] = useState<boolean | null>(null)
+  const [toggling, setToggling] = useState(false)
+
+  // Suscripción en tiempo real al estado del toggle
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'app_settings', 'email'), (snap) => {
+      setEmailsActivos(snap.data()?.emailsActivos ?? false)
+    })
+    return unsub
+  }, [])
+
+  const handleToggle = async () => {
+    if (toggling || emailsActivos === null) return
+    setToggling(true)
+    try {
+      const nuevo = !emailsActivos
+      const update: Record<string, unknown> = { emailsActivos: nuevo }
+      // Al activar, registramos el momento para evitar envíos retroactivos
+      if (nuevo) update.emailsActivadoDesde = serverTimestamp()
+      await updateDoc(doc(db, 'app_settings', 'email'), update)
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  const forzar = async () => {
+    setEstado('loading')
+    setDetalle('')
+    try {
+      const fn = httpsCallable(getFunctions(app, 'us-central1'), 'forzarProcesarEmails')
+      await fn()
+      setEstado('ok')
+      setDetalle('Procesamiento completado. Revisá tu email.')
+    } catch (e: unknown) {
+      setEstado('error')
+      setDetalle(e instanceof Error ? e.message : 'Error desconocido')
+    }
+  }
+
+  return (
+    <div className="space-y-4 pt-2 border-t border-slate-100">
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sistema</p>
+
+      {/* Toggle de emails */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors',
+            emailsActivos ? 'bg-emerald-100' : 'bg-slate-100'
+          )}>
+            {emailsActivos
+              ? <Mail size={16} className="text-emerald-600" />
+              : <MailX size={16} className="text-slate-400" />
+            }
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-800">Envío de emails</p>
+            <p className="text-xs text-slate-400">
+              {emailsActivos === null ? 'Cargando…' : emailsActivos ? 'Activo — se envían recordatorios y reseñas' : 'Inactivo — no sale ningún mail'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={toggling || emailsActivos === null}
+          className={cn(
+            'relative flex-shrink-0 w-12 h-6 rounded-full transition-colors duration-200 disabled:opacity-50',
+            emailsActivos ? 'bg-emerald-500' : 'bg-slate-200'
+          )}
+        >
+          <span className={cn(
+            'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+            emailsActivos ? 'translate-x-6' : 'translate-x-0'
+          )} />
+        </button>
+      </div>
+
+      {/* Forzar procesamiento */}
+      <div>
+        <p className="text-xs text-slate-400 mb-2">
+          Fuerza el procesamiento ahora: finaliza reservas vencidas y envía los emails pendientes.
+          {!emailsActivos && <span className="text-amber-500"> (emails desactivados — no saldrá nada)</span>}
+        </p>
+        <button
+          onClick={forzar}
+          disabled={estado === 'loading'}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition',
+            estado === 'ok'    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+            estado === 'error' ? 'bg-red-50 text-red-600 border border-red-200' :
+            'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          )}
+        >
+          <RefreshCw size={14} className={estado === 'loading' ? 'animate-spin' : ''} />
+          {estado === 'loading' ? 'Procesando…' : 'Forzar emails programados'}
+        </button>
+        {detalle && (
+          <p className={cn('text-xs mt-1.5', estado === 'ok' ? 'text-emerald-600' : 'text-red-500')}>{detalle}</p>
+        )}
+      </div>
     </div>
   )
 }

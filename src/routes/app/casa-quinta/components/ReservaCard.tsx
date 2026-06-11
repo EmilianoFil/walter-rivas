@@ -1,10 +1,12 @@
-import { ChevronRight, User, Calendar } from 'lucide-react'
+import { ChevronRight, User, Calendar, Clock, Star } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
-import type { Reserva } from '@/types'
+import type { Reserva, Resena } from '@/types'
 import { cn } from '@/lib/cn'
 
 interface Props {
   reserva: Reserva
+  resena?: Resena
+  lateCheckoutDisponible?: boolean
   onClick: () => void
 }
 
@@ -20,16 +22,46 @@ function formatMoney(n: number) {
   return '$' + n.toLocaleString('es-AR')
 }
 
-const ESTADO_CONFIG = {
-  libre: { label: 'Libre', cls: 'bg-slate-100 text-slate-600' },
-  señado: { label: 'Señado', cls: 'bg-amber-100 text-amber-700' },
-  reservado: { label: 'Reservado', cls: 'bg-emerald-100 text-emerald-700' },
+// Calcula si la reserva ya terminó comparando en UTC-3
+function esFinalizada(reserva: Reserva): boolean {
+  if (reserva.estado === 'finalizada') return true
+  // fallback visual: si el checkout ya pasó aunque el cron aún no actualizó Firestore
+  const checkout = toDate(reserva.fechaHasta)
+  const hoyArg = new Date(Date.now() - 3 * 60 * 60 * 1000)
+  return checkout < new Date(Date.UTC(hoyArg.getUTCFullYear(), hoyArg.getUTCMonth(), hoyArg.getUTCDate()))
 }
 
-export function ReservaCard({ reserva, onClick }: Props) {
-  const config = ESTADO_CONFIG[reserva.estado]
+const ESTADO_CONFIG: Record<string, { label: string; cls: string }> = {
+  libre:      { label: 'Sin seña',   cls: 'bg-slate-100 text-slate-500' },
+  señado:     { label: 'Señado',     cls: 'bg-amber-100 text-amber-700' },
+  reservado:  { label: 'Confirmado', cls: 'bg-emerald-100 text-emerald-700' },
+  finalizada: { label: 'Finalizada', cls: 'bg-slate-100 text-slate-500' },
+}
+
+function StarRow({ n }: { n: number }) {
+  return (
+    <span className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={11}
+          className={i <= n ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}
+        />
+      ))}
+    </span>
+  )
+}
+
+export function ReservaCard({ reserva, resena, lateCheckoutDisponible, onClick }: Props) {
+  const finalizada = esFinalizada(reserva)
+  const estadoKey = finalizada ? 'finalizada' : reserva.estado
+  const config = ESTADO_CONFIG[estadoKey] ?? ESTADO_CONFIG['reservado']
   const totalPagado = reserva.pagos.reduce((s, p) => s + p.monto, 0)
+  const saldoPendiente = Math.max(0, reserva.montoTotal - totalPagado)
   const porcentaje = reserva.montoTotal > 0 ? (totalPagado / reserva.montoTotal) * 100 : 0
+
+  // Reseña pendiente: checkout pasó + se envió el email + no hay reseña
+  const resenaPendiente = finalizada && reserva._emailsSent?.resena && !resena
 
   return (
     <button
@@ -38,11 +70,29 @@ export function ReservaCard({ reserva, onClick }: Props) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
+          {/* Badges de estado */}
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', config.cls)}>
               {config.label}
             </span>
+            {!finalizada && lateCheckoutDisponible && (
+              <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                <Clock size={9} />
+                Late checkout disponible
+              </span>
+            )}
+            {finalizada && resena && (
+              <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                <StarRow n={resena.estrellas} />
+              </span>
+            )}
+            {resenaPendiente && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-600">
+                Reseña pendiente
+              </span>
+            )}
           </div>
+
           <div className="flex items-center gap-1.5 mb-1">
             <User size={13} className="text-slate-400 flex-shrink-0" />
             <span className="text-sm font-medium text-slate-800 truncate">
@@ -55,16 +105,24 @@ export function ReservaCard({ reserva, onClick }: Props) {
               {formatFecha(reserva.fechaDesde)} → {formatFecha(reserva.fechaHasta)}
             </span>
           </div>
+
+          {/* Preview de reseña */}
+          {finalizada && resena?.loMejor && (
+            <p className="mt-1.5 text-xs text-slate-400 italic line-clamp-1">
+              "{resena.loMejor}"
+            </p>
+          )}
         </div>
+
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="text-right">
             <p className="text-sm font-semibold text-slate-800">{formatMoney(reserva.montoTotal)}</p>
-            {reserva.saldoPendiente > 0 && (
+            {saldoPendiente > 0 && (
               <p className="text-xs text-red-500 font-medium">
-                Debe {formatMoney(reserva.saldoPendiente)}
+                Debe {formatMoney(saldoPendiente)}
               </p>
             )}
-            {reserva.saldoPendiente === 0 && (
+            {saldoPendiente === 0 && reserva.montoTotal > 0 && (
               <p className="text-xs text-emerald-600 font-medium">Pagado</p>
             )}
           </div>
@@ -79,7 +137,7 @@ export function ReservaCard({ reserva, onClick }: Props) {
             <div
               className={cn(
                 'h-full rounded-full transition-all',
-                porcentaje === 100 ? 'bg-emerald-500' : 'bg-amber-400'
+                porcentaje === 100 ? 'bg-emerald-500' : finalizada ? 'bg-slate-300' : 'bg-amber-400'
               )}
               style={{ width: `${Math.min(porcentaje, 100)}%` }}
             />

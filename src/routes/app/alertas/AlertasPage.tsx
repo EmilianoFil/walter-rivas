@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAlertas } from '@/hooks/useAlertas'
 import type { Alerta } from '@/types'
 import { cn } from '@/lib/cn'
+import { SkPage } from '@/components/Skeleton'
 
 const schema = z.object({
   titulo: z.string().min(1, 'Requerido'),
@@ -125,7 +126,7 @@ export function AlertasPage() {
   })
   const vencidas = activas.filter(a => diasHasta(a.fecha) < 0)
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-7 h-7 border-2 border-slate-200 border-t-red-500 rounded-full animate-spin" /></div>
+  if (loading) return <SkPage rows={4} kpis={false} />
 
   return (
     <div className="space-y-5">

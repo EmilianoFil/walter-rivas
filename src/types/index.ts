@@ -22,7 +22,18 @@ export interface QuintaConfig {
   contactoEmail: string
   whatsapp?: string
   ubicacion?: string
+  googleMapsUrl?: string
   diasBloqueados?: RangoBloqueado[]
+  /** Horas que una pre-reserva pendiente bloquea el calendario. Default: 24 */
+  holdHoras?: number
+  /** Horario de check-in, ej: "15:00" */
+  horaCheckin?: string
+  /** Horario de check-out, ej: "11:00" */
+  horaCheckout?: string
+  /** Instrucciones de acceso para el email de check-in */
+  instruccionesCheckin?: string
+  /** Normativa de checkout para el email del día anterior */
+  normativaCheckout?: string
 }
 
 // ─── Pre-reservas (solicitudes públicas) ─────────────────────────────────────
@@ -39,6 +50,8 @@ export interface PreReserva {
   fechaHasta: Timestamp
   estado: EstadoPreReserva
   creadoEn: Timestamp
+  /** Cuándo expira el hold. Si no está definido, usa creadoEn + holdHoras */
+  expiraEn?: Timestamp
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -46,6 +59,19 @@ export interface AppUser {
   uid: string
   email: string
   displayName: string
+}
+
+export type VerticalPermiso = 'quinta' | 'deptos' | 'obras' | 'empresa' | 'flota'
+
+export interface UsuarioApp {
+  uid: string
+  email: string
+  nombre: string
+  rol: 'admin' | 'usuario' | 'colaborador'
+  verticales: VerticalPermiso[]
+  /** Solo para rol='colaborador': la vertical a la que puede aportar movimientos */
+  verticalColaborador?: VerticalPermiso
+  creadoEn: Timestamp
 }
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
@@ -59,7 +85,7 @@ export interface Adjunto {
 export type EstadoPago = 'pagado' | 'parcial' | 'pendiente'
 
 // ─── Casa Quinta ─────────────────────────────────────────────────────────────
-export type EstadoReserva = 'libre' | 'señado' | 'reservado'
+export type EstadoReserva = 'libre' | 'señado' | 'reservado' | 'finalizada'
 
 export interface Reserva {
   id: string
@@ -78,6 +104,25 @@ export interface Reserva {
   pagos: PagoReserva[]
   adjuntos: Adjunto[]
   notas?: string
+  creadoEn: Timestamp
+  creadoPor?: string
+  /** Flags internos — qué emails ya se enviaron para esta reserva */
+  _emailsSent?: {
+    confirmacion?: boolean
+    checkin?: boolean
+    checkout?: boolean
+    resena?: boolean
+  }
+}
+
+export interface Resena {
+  id: string
+  reservaId: string
+  nombre: string
+  estrellas: number
+  comentarios?: string  // comentario general — público
+  loMejor: string       // lo que más gustó — público
+  mejoras?: string      // sugerencias — solo admin
   creadoEn: Timestamp
 }
 
@@ -110,11 +155,22 @@ export interface PrecioBase {
 
 export interface GastoQuinta {
   id: string
-  categoria: 'pasto' | 'limpieza' | 'impuestos' | 'mantenimiento' | 'otro'
+  categoria: string
   descripcion: string
   monto: number
   fecha: Timestamp
   adjuntos: Adjunto[]
+  creadoPor?: string
+}
+
+export interface MovimientoQuinta {
+  id: string
+  tipo: 'ingreso' | 'egreso'
+  descripcion: string
+  monto: number
+  fecha: Timestamp
+  creadoPor: string
+  creadoPorNombre?: string
 }
 
 // ─── Departamentos / Local ────────────────────────────────────────────────────
@@ -144,15 +200,18 @@ export interface PagoAlquiler {
   periodo: string
   notas?: string
   adjuntos: Adjunto[]
+  creadoPor?: string
 }
 
 export interface GastoUnidad {
   id: string
   unidadId: string
+  categoria?: string
   descripcion: string
   monto: number
   fecha: Timestamp
   adjuntos: Adjunto[]
+  creadoPor?: string
 }
 
 // ─── Obras ───────────────────────────────────────────────────────────────────
@@ -174,6 +233,8 @@ export interface CobroObra {
   monto: number
   fecha: Timestamp
   notas?: string
+  categoria?: string
+  creadoPor?: string
 }
 
 export interface GastoObra {
@@ -182,10 +243,74 @@ export interface GastoObra {
   monto: number
   fecha: Timestamp
   adjuntos: Adjunto[]
+  categoria?: string
+  creadoPor?: string
+}
+
+// ─── Empresa Clientes ────────────────────────────────────────────────────────
+export interface EmpresaCliente {
+  id: string
+  nombre: string
+  descripcion?: string
+  presupuesto?: number
+  ingresos: EmpresaIngreso[]
+  gastos: EmpresaGasto[]
+  estado: 'activo' | 'finalizado' | 'pausado'
+  creadoEn: Timestamp
+}
+
+export interface EmpresaIngreso {
+  id: string
+  categoria?: string
+  descripcion?: string
+  monto: number
+  fecha: Timestamp
+  creadoPor?: string
+}
+
+export interface EmpresaGasto {
+  id: string
+  categoria?: string
+  descripcion: string
+  monto: number
+  fecha: Timestamp
+  creadoPor?: string
+}
+
+// ─── Movimientos Recurrentes ──────────────────────────────────────────────────
+export type VerticalRecurrente = 'quinta' | 'deptos' | 'flota'
+
+export interface Recurrente {
+  id: string
+  vertical: VerticalRecurrente
+  tipo: 'ingreso' | 'egreso'
+  nombre: string
+  monto: number
+  categoria?: string
+  creadoEn: Timestamp
+}
+
+// ─── Gastos Fijos ─────────────────────────────────────────────────────────────
+export interface GastoFijo {
+  id: string
+  nombre: string
+  monto: number
+  categoria?: string
+  creadoEn: Timestamp
 }
 
 // ─── Empresa General ─────────────────────────────────────────────────────────
 export type TipoMovimiento = 'ingreso' | 'egreso'
+
+export type VerticalCategoria = 'quinta' | 'deptos' | 'flota' | 'obras' | 'empresa'
+
+export interface Categoria {
+  id: string
+  nombre: string
+  tipo: 'ingreso' | 'egreso' | 'ambos'
+  verticales: VerticalCategoria[]
+  creadoEn: Timestamp
+}
 
 export interface MovimientoEmpresa {
   id: string
@@ -223,12 +348,13 @@ export interface Vehiculo {
 export interface GastoVehiculo {
   id: string
   vehiculoId: string
-  categoria: 'combustible' | 'service' | 'reparacion' | 'neumaticos' | 'lavado' | 'seguro' | 'patente' | 'vtv' | 'otro'
+  categoria: string
   descripcion: string
   monto: number
   fecha: Timestamp
   km?: number
   adjuntos: Adjunto[]
+  creadoPor?: string
 }
 
 export interface KmUpdate {
@@ -251,6 +377,7 @@ export interface Alerta {
   vertical?: 'quinta' | 'deptos' | 'obras' | 'empresa' | 'flota' | 'general'
   referenciaId?: string
   creadoEn: Timestamp
+  creadoPor?: string
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
